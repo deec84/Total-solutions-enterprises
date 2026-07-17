@@ -197,7 +197,7 @@ def test_community_report_reputation_and_appeal_round_trip() -> None:
 def test_admin_mfa_is_encrypted_and_audit_chain_is_persistent() -> None:
     async def scenario() -> None:
         user_id = uuid4()
-        secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+        rfc_totp_seed = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
         async with session_factory() as session, session.begin():
             users = SqlUserRepository(session)
             await users.add(
@@ -211,8 +211,8 @@ def test_admin_mfa_is_encrypted_and_audit_chain_is_persistent() -> None:
                     datetime.now(UTC),
                 )
             )
-            updated = await users.set_mfa(user_id, secret, True)
-            assert updated is not None and updated.mfa_secret == secret
+            updated = await users.set_mfa(user_id, rfc_totp_seed, True)
+            assert updated is not None and updated.mfa_secret == rfc_totp_seed
             await SqlAdminAuditTrail(session).append(
                 user_id, "admin.integration_test", user_id
             )
@@ -221,7 +221,7 @@ def test_admin_mfa_is_encrypted_and_audit_chain_is_persistent() -> None:
             raw_secret = await session.scalar(
                 select(UserRow.mfa_secret).where(UserRow.id == user_id)
             )
-            assert raw_secret is not None and raw_secret != secret
+            assert raw_secret is not None and raw_secret != rfc_totp_seed
             valid, checked = await SqlAdminAuditTrail(session).verify_integrity()
             assert valid and checked >= 1
             await session.execute(

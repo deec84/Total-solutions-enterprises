@@ -20,11 +20,11 @@ from app.presentation.api.routes.admin import overview, privileged_user
 
 
 def test_totp_matches_rfc_vector_and_accepts_small_clock_drift() -> None:
-    secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
-    assert totp(secret, 59) == "287082"
-    assert verify_totp(secret, "287082", 59)
-    assert verify_totp(secret, totp(secret, 30), 59)
-    assert not verify_totp(secret, "invalid", 59)
+    rfc_totp_seed = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+    assert totp(rfc_totp_seed, 59) == "287082"
+    assert verify_totp(rfc_totp_seed, "287082", 59)
+    assert verify_totp(rfc_totp_seed, totp(rfc_totp_seed, 30), 59)
+    assert not verify_totp(rfc_totp_seed, "invalid", 59)
 
 
 def test_mfa_secret_and_provisioning_uri_are_authenticator_compatible() -> None:

@@ -9,7 +9,7 @@ The application source, migrations, client, CI/CD, infrastructure, and operation
 - Authentication fixture isolation: 11/11 auth tests pass; one repository graph per test and one shared instance across its requests.
 - Backend: 105/105 tests; 91.33% coverage with required minimum unchanged at 90%.
 - Ruff, strict mypy, Bandit medium/high, and pip-audit: pass; no known audited dependency vulnerabilities.
-- Alembic: one linear head at `0009_distributed_login_rate_limit`; full offline SQL render succeeds.
+- Alembic: one linear head at `0009_distributed_login_limits`; full offline SQL render succeeds.
 - Terraform: formatting and provider-schema validation pass with AWS 6.55.0.
 - Trivy IaC: zero high/critical findings; no ignored findings.
 - Flutter: dependency resolution, Dart formatting, Analyze with fatal infos, and all 40 API/controller/rendering/model/accessibility/stop-detection tests pass; LCOV records 1,262/1,626 executable lines (77.61%) against the enforced 75% minimum.
