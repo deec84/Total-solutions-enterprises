@@ -8,6 +8,7 @@ import 'package:parkshield_mobile/src/features/parking_ai/presentation/parking_a
 import 'package:parkshield_mobile/src/features/recommendations/presentation/parking_recommendations_page.dart';
 import 'package:parkshield_mobile/src/features/recovery/presentation/tow_recovery_page.dart';
 import 'package:parkshield_mobile/src/features/sign_scanner/presentation/sign_scanner_page.dart';
+import 'package:parkshield_mobile/src/features/privacy/presentation/privacy_page.dart';
 
 class BootstrapPage extends StatefulWidget {
   const BootstrapPage({
@@ -15,6 +16,7 @@ class BootstrapPage extends StatefulWidget {
     required this.mapTileUrl,
     required this.userRole,
     this.onLogout,
+    this.onAccountDeleted,
     super.key,
   });
 
@@ -22,6 +24,7 @@ class BootstrapPage extends StatefulWidget {
   final String mapTileUrl;
   final String userRole;
   final Future<void> Function()? onLogout;
+  final VoidCallback? onAccountDeleted;
 
   @override
   State<BootstrapPage> createState() => _BootstrapPageState();
@@ -63,6 +66,10 @@ class _BootstrapPageState extends State<BootstrapPage> {
       ),
       AlertsPage(apiBaseUrl: widget.apiBaseUrl),
       TowRecoveryPage(apiBaseUrl: widget.apiBaseUrl),
+      PrivacyPage(
+        apiBaseUrl: widget.apiBaseUrl,
+        onAccountDeleted: widget.onAccountDeleted,
+      ),
       if (isPrivileged) AdminPage(apiBaseUrl: widget.apiBaseUrl),
     ];
     final List<String> titles = <String>[
@@ -73,6 +80,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
       'Community report',
       'Alerts',
       'Tow recovery',
+      'Privacy',
       if (isPrivileged) 'Administration',
     ];
     final List<NavigationDrawerDestination> destinations =
@@ -111,6 +119,11 @@ class _BootstrapPageState extends State<BootstrapPage> {
         icon: Icon(Icons.car_crash_outlined),
         selectedIcon: Icon(Icons.car_crash),
         label: Text('Tow recovery'),
+      ),
+      const NavigationDrawerDestination(
+        icon: Icon(Icons.privacy_tip_outlined),
+        selectedIcon: Icon(Icons.privacy_tip),
+        label: Text('Privacy and data'),
       ),
       if (isPrivileged)
         const NavigationDrawerDestination(

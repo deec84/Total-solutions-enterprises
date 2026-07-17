@@ -57,3 +57,7 @@ Nearby alternatives ranked by walk distance, safety, price, historical towing fr
 ## 14. Community media lifecycle — implemented; object-store/cloud gate required
 
 Private KMS-encrypted evidence storage, integrity metadata, bounded retention, privileged short-lived access, immediate logical deletion after rejection, retryable expiry purge, audit events, and fail-closed deployed configuration. Exit: lifecycle, API, adapter, migration, security, and infrastructure gates pass without real cloud credentials; an account-owned staging apply and object-store exercise remain mandatory before promotion.
+
+## 15. Privacy rights and account lifecycle — implemented; hosted/legal gates required
+
+Append-only optional-consent history, data-minimized JSON export, password/MFA-confirmed self-service deletion, external-media deletion before database removal, session and owned-data cascades, pseudonymous request evidence, mobile privacy center, and non-cacheable API responses. Exit: unit, API, repository, PostgreSQL cascade, mobile, security, coverage, and exact-commit hosted gates pass; the owner-approved privacy policy and retention schedule remain mandatory before production or store submission.

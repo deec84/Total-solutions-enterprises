@@ -89,6 +89,7 @@ class _AuthGateState extends State<AuthGate> {
             mapTileUrl: widget.mapTileUrl,
             userRole: _controller.userRole,
             onLogout: _controller.logout,
+            onAccountDeleted: _controller.accountDeleted,
           ),
       };
 }

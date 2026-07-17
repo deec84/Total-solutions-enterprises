@@ -61,6 +61,12 @@ void main() {
     expect(controller.errorMessage, isNull);
     await controller.logout();
     expect(controller.status, AuthStatus.signedOut);
+
+    await controller.login(
+        email: 'person@example.com', password: 'secure-password');
+    controller.accountDeleted();
+    expect(controller.status, AuthStatus.signedOut);
+    expect(controller.userRole, 'user');
   });
 
   test('keeps the user signed out after a login failure', () async {

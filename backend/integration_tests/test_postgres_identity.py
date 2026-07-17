@@ -14,6 +14,7 @@ from app.infrastructure.database import engine, session_factory
 from app.infrastructure.models import (
     AdminAuditRow,
     AlertDeliveryRow,
+    DataRightsRequestRow,
     LoginRateLimitRow,
     ParkingFacilityRow,
     ParkingZoneRow,
@@ -27,6 +28,7 @@ from app.modules.community.service import CommunityReportService
 from app.modules.community.sql_repository import SqlCommunityReportRepository
 from app.modules.identity.abuse import RateLimitExceeded
 from app.modules.identity.domain import Role, User
+from app.modules.identity.security import PasswordManager
 from app.modules.identity.sql_abuse import SqlLoginRateLimiter
 from app.modules.identity.sql_repositories import SqlSessionRepository, SqlUserRepository
 from app.modules.notifications.domain import (
@@ -36,6 +38,12 @@ from app.modules.notifications.domain import (
 )
 from app.modules.notifications.sql_repository import SqlNotificationRepository
 from app.modules.parking.sql_repository import SqlParkingZoneRepository
+from app.modules.privacy.domain import ConsentPurpose
+from app.modules.privacy.service import (
+    ACCOUNT_DELETION_CONFIRMATION,
+    PrivacyService,
+)
+from app.modules.privacy.sql_repository import SqlPrivacyRepository
 from app.modules.recommendations.sql_repository import SqlParkingFacilityRepository
 
 
@@ -276,6 +284,66 @@ def test_notification_consent_encrypted_device_and_atomic_deduplication() -> Non
                 delete(AlertDeliveryRow).where(AlertDeliveryRow.user_id == user_id)
             )
             await session.execute(delete(UserRow).where(UserRow.id == user_id))
+
+    run_isolated_scenario(scenario)
+
+
+def test_privacy_export_and_account_deletion_use_database_cascades() -> None:
+    async def scenario() -> None:
+        user_id = uuid4()
+        passwords = PasswordManager()
+        subject = User(
+            user_id,
+            f"privacy-{user_id}@example.com",
+            passwords.hash("integration-password"),
+            Role.USER,
+            True,
+            True,
+            datetime.now(UTC),
+        )
+        async with session_factory() as session, session.begin():
+            await SqlUserRepository(session).add(subject)
+            privacy = PrivacyService(
+                SqlPrivacyRepository(session),
+                passwords,
+                "integration-subject-secret",
+                "integration-v1",
+            )
+            await privacy.decide_consent(
+                user_id, ConsentPurpose.PRODUCT_ANALYTICS, False
+            )
+            export = await privacy.export(user_id)
+            assert export.data["profile"] == {
+                "id": str(user_id),
+                "email": subject.email,
+                "role": "user",
+                "is_active": True,
+                "is_verified": True,
+                "mfa_enabled": False,
+                "created_at": subject.created_at.isoformat(),
+            }
+            assert "password_hash" not in str(export.data)
+            deletion_request_id = await privacy.delete_account(
+                subject,
+                "integration-password",
+                ACCOUNT_DELETION_CONFIRMATION,
+            )
+
+        async with session_factory() as session, session.begin():
+            assert await session.get(UserRow, user_id) is None
+            retained_request = await session.get(
+                DataRightsRequestRow, deletion_request_id
+            )
+            assert retained_request is not None
+            assert retained_request.user_id is None
+            assert retained_request.status == "completed"
+            assert retained_request.subject_reference != str(user_id)
+            await session.execute(
+                delete(DataRightsRequestRow).where(
+                    DataRightsRequestRow.subject_reference
+                    == retained_request.subject_reference
+                )
+            )
 
     run_isolated_scenario(scenario)
 
