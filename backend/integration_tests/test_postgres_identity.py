@@ -1,6 +1,7 @@
 """Identity persistence integration against a migrated PostgreSQL/PostGIS instance."""
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -38,6 +39,16 @@ from app.modules.parking.sql_repository import SqlParkingZoneRepository
 from app.modules.recommendations.sql_repository import SqlParkingFacilityRepository
 
 
+def run_isolated_scenario(scenario: Callable[[], Awaitable[None]]) -> None:
+    async def execute() -> None:
+        try:
+            await scenario()
+        finally:
+            await engine.dispose()
+
+    asyncio.run(execute())
+
+
 def test_migrated_postgis_identity_repository_round_trip() -> None:
     async def scenario() -> None:
         user_id, token_id = uuid4(), uuid4()
@@ -69,9 +80,7 @@ def test_migrated_postgis_identity_repository_round_trip() -> None:
             assert await sessions.consume(token_id) == user_id
             await session.execute(delete(UserRow).where(UserRow.id == user_id))
 
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
 
 
 def test_postgis_zone_viewport_and_point_queries() -> None:
@@ -108,9 +117,7 @@ def test_postgis_zone_viewport_and_point_queries() -> None:
             assert decision.towing_hotspot is True
             await session.execute(delete(ParkingZoneRow).where(ParkingZoneRow.id == zone_id))
 
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
 
 
 def test_authentication_http_round_trip_uses_postgresql() -> None:
@@ -142,9 +149,7 @@ def test_authentication_http_round_trip_uses_postgresql() -> None:
             async with session_factory() as session, session.begin():
                 await session.execute(delete(UserRow).where(UserRow.email == email))
 
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
 
 
 def test_community_report_reputation_and_appeal_round_trip() -> None:
@@ -189,9 +194,7 @@ def test_community_report_reputation_and_appeal_round_trip() -> None:
             assert reputation.rejected_reports == 1
             await session.execute(delete(UserRow).where(UserRow.id == user_id))
 
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
 
 
 def test_admin_mfa_is_encrypted_and_audit_chain_is_persistent() -> None:
@@ -229,9 +232,7 @@ def test_admin_mfa_is_encrypted_and_audit_chain_is_persistent() -> None:
             )
             await session.execute(delete(UserRow).where(UserRow.id == user_id))
 
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
 
 
 def test_notification_consent_encrypted_device_and_atomic_deduplication() -> None:
@@ -276,9 +277,7 @@ def test_notification_consent_encrypted_device_and_atomic_deduplication() -> Non
             )
             await session.execute(delete(UserRow).where(UserRow.id == user_id))
 
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
 
 
 def test_cross_feature_driver_journey_uses_migrated_postgresql() -> None:
@@ -370,9 +369,7 @@ def test_cross_feature_driver_journey_uses_migrated_postgresql() -> None:
         async with session_factory() as session, session.begin():
             await session.execute(delete(ParkingZoneRow).where(ParkingZoneRow.id == zone_id))
             await session.execute(delete(UserRow).where(UserRow.email == email))
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
 
 
 def test_postgis_nearby_parking_facility_recommendation_query() -> None:
@@ -410,9 +407,7 @@ def test_postgis_nearby_parking_facility_recommendation_query() -> None:
                 delete(ParkingFacilityRow).where(ParkingFacilityRow.id == facility_id)
             )
 
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
 
 
 def test_login_rate_limit_is_shared_across_database_sessions() -> None:
@@ -430,6 +425,4 @@ def test_login_rate_limit_is_shared_across_database_sessions() -> None:
                 delete(LoginRateLimitRow).where(LoginRateLimitRow.key == key)
             )
 
-        await engine.dispose()
-
-    asyncio.run(scenario())
+    run_isolated_scenario(scenario)
