@@ -13,6 +13,8 @@ from app.infrastructure.models import (
     AuditEventRow,
     CommunityReportRow,
     DataRightsRequestRow,
+    MunicipalImportBatchRow,
+    MunicipalSourceRow,
     NotificationPreferenceRow,
     PrivacyConsentEventRow,
     PushDeviceRow,
@@ -36,6 +38,19 @@ from app.modules.identity.sql_repositories import (
     SqlSessionRepository,
     SqlUserRepository,
 )
+from app.modules.ingestion.domain import (
+    DataFormat,
+    FeedKind,
+    ImportBatch,
+    ImportStatus,
+    MunicipalSource,
+    NormalizedImport,
+    NormalizedParkingFacility,
+    NormalizedParkingZone,
+    RejectedRecord,
+)
+from app.modules.ingestion.sql_repository import SqlMunicipalIngestionRepository
+from app.modules.parking.domain import ZoneType
 from app.modules.privacy.domain import (
     ConsentDecision,
     ConsentPurpose,
@@ -434,5 +449,135 @@ def test_sql_privacy_export_minimizes_sensitive_fields_and_deletes_account() -> 
         deleted.scalar_one_or_none.return_value = None
         db.execute.side_effect = [updated, deleted]
         assert not await repository.delete_account(user_id)
+
+    asyncio.run(scenario())
+
+
+def test_sql_municipal_repository_maps_sources_batches_and_import_records() -> None:
+    async def scenario() -> None:
+        db = session_mock()
+        repository = SqlMunicipalIngestionRepository(db)
+        now = datetime.now(UTC)
+        source = MunicipalSource(
+            uuid4(),
+            "Synthetic source",
+            "Test jurisdiction",
+            FeedKind.PARKING_ZONES,
+            DataFormat.GEOJSON,
+            "https://example.test/feed",
+            None,
+            False,
+            True,
+            60,
+            120,
+            now,
+            now,
+        )
+        await repository.add_source(source)
+        db.add.assert_called_once()
+        db.flush.assert_awaited_once()
+
+        source_row = MunicipalSourceRow(
+            id=source.id,
+            name=source.name,
+            jurisdiction=source.jurisdiction,
+            feed_kind=source.feed_kind,
+            data_format=source.data_format,
+            source_url=source.source_url,
+            license_url=source.license_url,
+            official=source.official,
+            enabled=source.enabled,
+            refresh_interval_minutes=source.refresh_interval_minutes,
+            stale_after_minutes=source.stale_after_minutes,
+            created_at=source.created_at,
+            updated_at=source.updated_at,
+        )
+        db.get.return_value = source_row
+        assert await repository.source(source.id) == source
+        db.scalars.return_value = [source_row]
+        assert await repository.sources() == (source,)
+
+        batch = ImportBatch(
+            uuid4(),
+            source.id,
+            "a" * 64,
+            "1.0",
+            ImportStatus.PARTIAL,
+            3,
+            2,
+            1,
+            now,
+            now,
+        )
+        batch_row = MunicipalImportBatchRow(
+            id=batch.id,
+            source_id=batch.source_id,
+            content_sha256=batch.content_sha256,
+            importer_version=batch.importer_version,
+            status=batch.status,
+            input_count=batch.input_count,
+            accepted_count=batch.accepted_count,
+            rejected_count=batch.rejected_count,
+            received_at=batch.received_at,
+            completed_at=batch.completed_at,
+        )
+        db.scalar.return_value = batch_row
+        assert await repository.batch_by_digest(source.id, batch.content_sha256) == batch
+
+        normalized = NormalizedImport(
+            input_count=3,
+            zones=(
+                NormalizedParkingZone(
+                    "zone-1",
+                    "Synthetic zone",
+                    ZoneType.GENERAL,
+                    '{"type":"Polygon","coordinates":[[[-80.2,25.7],[-80.1,25.7],'
+                    '[-80.1,25.8],[-80.2,25.7]]]}',
+                    80,
+                    None,
+                    None,
+                    False,
+                    now,
+                    now + timedelta(days=1),
+                ),
+            ),
+            facilities=(
+                NormalizedParkingFacility(
+                    "facility-1",
+                    "Synthetic garage",
+                    "100 Test Ave",
+                    25.7,
+                    -80.2,
+                    1000,
+                    90,
+                    1.0,
+                    4.5,
+                    10,
+                    100,
+                    "https://example.test/nav",
+                    now,
+                    now + timedelta(days=1),
+                ),
+            ),
+            rejected=(RejectedRecord(2, "b" * 64, "invalid", "synthetic error"),),
+        )
+        await repository.commit_import(source, batch, normalized)
+        assert db.add.call_count == 3
+        assert db.flush.await_count == 2
+        assert db.execute.await_count == 2
+
+        db.scalars.return_value = [batch_row]
+        assert await repository.batches(source.id, 10) == (batch,)
+
+        missing = session_mock()
+        missing.get.return_value = None
+        missing.scalar.return_value = None
+        assert await SqlMunicipalIngestionRepository(missing).source(uuid4()) is None
+        assert (
+            await SqlMunicipalIngestionRepository(missing).batch_by_digest(
+                uuid4(), "c" * 64
+            )
+            is None
+        )
 
     asyncio.run(scenario())

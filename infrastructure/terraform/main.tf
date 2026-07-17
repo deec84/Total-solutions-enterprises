@@ -504,6 +504,8 @@ resource "aws_ecs_task_definition" "api" {
       { name = "PARKSHIELD_ENVIRONMENT", value = var.environment },
       { name = "PARKSHIELD_MEDIA_BUCKET", value = aws_s3_bucket.media.id },
       { name = "PARKSHIELD_MEDIA_RETENTION_DAYS", value = "30" },
+      { name = "PARKSHIELD_MUNICIPAL_IMPORTS_ENABLED", value = tostring(var.municipal_imports_enabled) },
+      { name = "PARKSHIELD_MUNICIPAL_MAX_UPLOAD_BYTES", value = tostring(var.municipal_max_upload_bytes) },
       { name = "PARKSHIELD_LOG_LEVEL", value = "INFO" },
       { name = "PARKSHIELD_SMTP_HOST", value = var.smtp_host },
       { name = "PARKSHIELD_SMTP_USERNAME", value = var.smtp_username },

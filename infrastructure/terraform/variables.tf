@@ -27,6 +27,22 @@ variable "desired_count" {
   default = 2
 }
 
+variable "municipal_imports_enabled" {
+  type        = bool
+  description = "Enable the governed municipal import API only after source-rights and staging approval."
+  default     = false
+}
+
+variable "municipal_max_upload_bytes" {
+  type        = number
+  description = "Maximum accepted municipal feed upload in bytes."
+  default     = 5242880
+  validation {
+    condition     = var.municipal_max_upload_bytes >= 1024 && var.municipal_max_upload_bytes <= 10485760
+    error_message = "municipal_max_upload_bytes must be between 1024 and 10485760"
+  }
+}
+
 variable "alarm_email" {
   type        = string
   description = "Optional operational alert email."

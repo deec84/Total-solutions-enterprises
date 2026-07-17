@@ -28,6 +28,8 @@ All backend names use the `PARKSHIELD_` prefix.
 | `PARKSHIELD_MEDIA_BUCKET` | Deployed | No | Private object-store bucket for governed community evidence. ECS receives the Terraform-created bucket name; no static AWS credential is used. |
 | `PARKSHIELD_MEDIA_RETENTION_DAYS` | No | No | Evidence retention, constrained to 1–30 days; default and deployed policy are `30`. |
 | `PARKSHIELD_PRIVACY_POLICY_VERSION` | Yes | No | Public immutable identifier recorded with each optional-consent decision. Update only when the owner-approved policy changes; allowed characters are letters, digits, `.`, `_`, and `-`. |
+| `PARKSHIELD_MUNICIPAL_IMPORTS_ENABLED` | No | No | Enables the MFA-protected municipal import API; default `false`. Keep disabled until source rights, schema mapping, ownership, and staging validation are approved. |
+| `PARKSHIELD_MUNICIPAL_MAX_UPLOAD_BYTES` | No | No | Maximum municipal feed upload, constrained to 1 KiB–10 MiB; default `5242880`. The API reads at most this limit plus one byte and connectors also cap feeds at 5,000 records. |
 
 When `PARKSHIELD_MEDIA_BUCKET` is absent in local/test mode, photos are validated and hashed but raw bytes are discarded. Staging and production reject missing bucket configuration. The AWS SDK uses the ECS task role; do not create application access-key variables. Objects use bucket-default KMS encryption, private/no-store delivery, SHA-256 integrity metadata, short-lived privileged access, rejection deletion, and a maximum 30-day lifecycle.
 
@@ -64,6 +66,8 @@ Terraform values are supplied through a secure out-of-repository `.tfvars` file 
 | `environment` | No | `staging` or `production`. |
 | `image_uri` | No | Existing ECR image URI pinned with `@sha256:`. |
 | `desired_count` | No | ECS task count; default `2`. |
+| `municipal_imports_enabled` | No | Defaults to `false`; enable only after the source-rights and monitored staging-import gates are approved. |
+| `municipal_max_upload_bytes` | No | Feed upload bound propagated to ECS; 1 KiB–10 MiB, default 5 MiB. |
 | `alarm_email` | Personal/operational | Monitored address that confirms the SNS subscription. |
 | `smtp_host`, `smtp_username`, `email_from` | Account metadata | Contracted email provider. |
 | `smtp_password_secret_arn` | ARN only | Existing Secrets Manager secret containing only the SMTP password. |

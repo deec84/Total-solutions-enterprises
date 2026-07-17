@@ -2,6 +2,8 @@ environment   = "production"
 aws_region    = "us-east-1"
 image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/parkshield-api@sha256:replace"
 desired_count = 2
+municipal_imports_enabled = false # Change only after explicit production approval.
+municipal_max_upload_bytes = 5242880
 vpc_cidr      = "10.52.0.0/16"
 
 alarm_email = "platform-alerts@example.com"
