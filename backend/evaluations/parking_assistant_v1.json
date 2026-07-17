@@ -1,0 +1,11 @@
+{
+  "dataset_version": "parking-assistant-eval-1.0.0",
+  "cases": [
+    {"name": "private_property", "base_score": 95, "zone_type": "private_property", "permit": false, "hotspot": false, "expected_score": 0, "expected_source": "official"},
+    {"name": "resident_without_permit", "base_score": 80, "zone_type": "resident_only", "permit": false, "hotspot": false, "expected_score": 10, "expected_source": "official"},
+    {"name": "resident_with_permit", "base_score": 80, "zone_type": "resident_only", "permit": true, "hotspot": false, "expected_score": 80, "expected_source": "official"},
+    {"name": "towing_hotspot", "base_score": 90, "zone_type": "towing_hotspot", "permit": false, "hotspot": true, "expected_score": 20, "expected_source": "official"},
+    {"name": "verified_general", "base_score": 85, "zone_type": "general", "permit": false, "hotspot": false, "expected_score": 85, "expected_source": "official"},
+    {"name": "missing_data", "base_score": null, "zone_type": null, "permit": false, "hotspot": false, "expected_score": 50, "expected_source": "ai_prediction"}
+  ]
+}

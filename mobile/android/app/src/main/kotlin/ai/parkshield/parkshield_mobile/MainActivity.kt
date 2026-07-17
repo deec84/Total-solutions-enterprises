@@ -1,0 +1,5 @@
+package ai.parkshield.parkshield_mobile
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()

@@ -1,0 +1,17 @@
+{
+  "active_models": {
+    "parking_rules": {
+      "version": "parking-rules-2026-07-01",
+      "artifact_type": "deterministic_rules",
+      "evaluation_dataset": "parking-assistant-eval-1.0.0",
+      "rollback_version": null
+    },
+    "parking_prediction": {
+      "version": "parking-baseline-1.0.0",
+      "artifact_type": "conservative_baseline",
+      "evaluation_dataset": "parking-assistant-eval-1.0.0",
+      "rollback_version": null,
+      "human_review_below_confidence": 0.5
+    }
+  }
+}

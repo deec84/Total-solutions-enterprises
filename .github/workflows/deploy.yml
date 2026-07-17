@@ -1,0 +1,160 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment
+        required: true
+        type: choice
+        options: [staging, production]
+      image_uri:
+        description: Immutable ECR URI (@sha256); required for production promotion
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v6.1.1
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Validate immutable image input
+        env:
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          REQUESTED_IMAGE: ${{ inputs.image_uri }}
+        run: |
+          if [ "$DEPLOY_ENVIRONMENT" = "production" ] && [ -z "$REQUESTED_IMAGE" ]; then
+            echo "Production requires a staging-approved image_uri pinned by digest." >&2
+            exit 1
+          fi
+          if [ -n "$REQUESTED_IMAGE" ]; then
+            case "$REQUESTED_IMAGE" in
+              "$ECR_REPOSITORY"@sha256:*) ;;
+              *) echo "image_uri must use the configured ECR repository and @sha256 digest." >&2; exit 1 ;;
+            esac
+            IMAGE_DIGEST=${REQUESTED_IMAGE##*@sha256:}
+            test "${#IMAGE_DIGEST}" -eq 64
+            printf '%s' "$IMAGE_DIGEST" | grep -Eq '^[0-9a-f]{64}$'
+          fi
+      - uses: aws-actions/amazon-ecr-login@v2
+        if: inputs.image_uri == ''
+      - uses: docker/setup-buildx-action@v3
+        if: inputs.image_uri == ''
+      - name: Build and push immutable ARM64 image
+        if: inputs.image_uri == ''
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          platforms: linux/arm64
+          push: true
+          tags: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}-${{ github.run_attempt }}
+          provenance: true
+          sbom: true
+      - name: Resolve release image digest
+        id: release-image
+        env:
+          BUILT_DIGEST: ${{ steps.image.outputs.digest }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          REQUESTED_IMAGE: ${{ inputs.image_uri }}
+        run: |
+          if [ -n "$REQUESTED_IMAGE" ]; then
+            RELEASE_IMAGE="$REQUESTED_IMAGE"
+          else
+            test -n "$BUILT_DIGEST"
+            RELEASE_IMAGE="$ECR_REPOSITORY@$BUILT_DIGEST"
+          fi
+          echo "uri=$RELEASE_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "Deploying immutable image: $RELEASE_IMAGE" >> "$GITHUB_STEP_SUMMARY"
+      - name: Capture current task definition for rollback
+        run: |
+          aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text > previous-task-definition.txt
+          CURRENT_TASK=$(cat previous-task-definition.txt)
+          aws ecs describe-task-definition \
+            --task-definition "$CURRENT_TASK" \
+            --query taskDefinition > task-definition.json
+        env:
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+      - uses: aws-actions/amazon-ecs-render-task-definition@v1.8.5
+        id: render
+        with:
+          task-definition: task-definition.json
+          container-name: api
+          image: ${{ steps.release-image.outputs.uri }}
+      - name: Register release task definition
+        id: register
+        run: |
+          jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' \
+            "$RENDERED" > release-task-definition.json
+          RELEASE_TASK=$(aws ecs register-task-definition \
+            --cli-input-json file://release-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "arn=$RELEASE_TASK" >> "$GITHUB_OUTPUT"
+        env:
+          RENDERED: ${{ steps.render.outputs.task-definition }}
+      - name: Run forward-only database migration
+        id: migration
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --task-definition "$RELEASE_TASK" \
+            --launch-type FARGATE \
+            --network-configuration "$ECS_NETWORK_CONFIGURATION" \
+            --overrides '{"containerOverrides":[{"name":"api","command":["alembic","-c","/app/alembic.ini","upgrade","head"]}]}' \
+            --query 'tasks[0].taskArn' --output text)
+          test "$TASK_ARN" != "None"
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
+          EXIT_CODE=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[?name==`api`].exitCode | [0]' --output text)
+          test "$EXIT_CODE" = "0"
+        env:
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          ECS_NETWORK_CONFIGURATION: ${{ vars.ECS_NETWORK_CONFIGURATION }}
+          RELEASE_TASK: ${{ steps.register.outputs.arn }}
+      - name: Deploy with ECS circuit breaker
+        id: deploy
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$RELEASE_TASK" >/dev/null
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
+          curl --fail --retry 10 --retry-delay 6 "$API_BASE_URL/api/v1/health/ready"
+        env:
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+          RELEASE_TASK: ${{ steps.register.outputs.arn }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+      - name: Roll back service revision on failed rollout
+        if: failure() && steps.migration.outcome == 'success'
+        run: |
+          PREVIOUS_TASK=$(cat previous-task-definition.txt)
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$PREVIOUS_TASK" >/dev/null
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
+        env:
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ vars.ECS_SERVICE }}

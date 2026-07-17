@@ -1,0 +1,24 @@
+environment   = "production"
+aws_region    = "us-east-1"
+image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/parkshield-api@sha256:replace"
+desired_count = 2
+vpc_cidr      = "10.52.0.0/16"
+
+alarm_email = "platform-alerts@example.com"
+
+smtp_host                = "smtp.example.com"
+smtp_username            = "replace-with-production-service-account"
+smtp_password_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:parkshield/production/smtp-password-replace"
+email_from               = "no-reply@parkshield.example"
+
+push_provider_url              = "https://push-gateway.example.com/v1/messages"
+push_provider_token_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:parkshield/production/push-token-replace"
+
+tow_provider_url              = "https://tow-gateway.example.com/v1/lookup"
+tow_provider_token_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:parkshield/production/tow-token-replace"
+
+provider_egress_cidrs = ["203.0.113.10/32", "198.51.100.20/32"]
+
+origin_domain_name    = "origin.parkshield.example"
+route53_zone_id       = "ZREPLACEWITHHOSTEDZONEID"
+origin_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/replace"
