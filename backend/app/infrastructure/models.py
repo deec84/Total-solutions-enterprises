@@ -103,6 +103,15 @@ class CommunityReportRow(Base):
     validation_score: Mapped[float] = mapped_column(Float, nullable=False)
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     photo_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    photo_object_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    photo_content_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    photo_size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    photo_retained_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    photo_deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     moderation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -110,6 +119,7 @@ class CommunityReportRow(Base):
     __table_args__ = (
         Index("ix_community_reports_status_created", "status", "created_at"),
         Index("ix_community_reports_fingerprint_created", "fingerprint", "created_at"),
+        Index("ix_community_reports_media_retention", "photo_retained_until"),
     )
 
 

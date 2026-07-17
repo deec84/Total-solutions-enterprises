@@ -12,7 +12,7 @@ The modified fixture is `api` in `backend/tests/test_auth.py`, supported by the 
 
 The defect occurred because the old override factory built a new service and new in-memory repositories on every request. Registration wrote the user into one instance; verification/login then read a different empty instance. Sharing the single function-scoped service preserves data across requests inside one test, while a new fixture instance for the next test prevents cross-test leakage.
 
-After the correction, all 11 registration/login/session contract tests pass. The final full backend run passes 107/107 tests with 91.45% coverage against the unchanged 90% minimum. No test is skipped, expected-failure, or allowed to fail.
+After the correction, all 11 registration/login/session contract tests pass. The final full backend run passes 122/122 tests with 91.78% coverage against the unchanged 90% minimum. No test is skipped, expected-failure, or allowed to fail.
 
 ## HTTP contracts
 

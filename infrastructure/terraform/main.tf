@@ -318,6 +318,24 @@ resource "aws_s3_bucket_public_access_block" "media" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_policy" "media_transport" {
+  bucket = aws_s3_bucket.media.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "DenyInsecureTransport"
+      Effect    = "Deny"
+      Principal = "*"
+      Action    = "s3:*"
+      Resource = [
+        aws_s3_bucket.media.arn,
+        "${aws_s3_bucket.media.arn}/*",
+      ]
+      Condition = { Bool = { "aws:SecureTransport" = "false" } }
+    }]
+  })
+}
+
 resource "aws_s3_bucket_versioning" "media" {
   bucket = aws_s3_bucket.media.id
   versioning_configuration { status = "Enabled" }
@@ -485,6 +503,7 @@ resource "aws_ecs_task_definition" "api" {
     environment = [
       { name = "PARKSHIELD_ENVIRONMENT", value = var.environment },
       { name = "PARKSHIELD_MEDIA_BUCKET", value = aws_s3_bucket.media.id },
+      { name = "PARKSHIELD_MEDIA_RETENTION_DAYS", value = "30" },
       { name = "PARKSHIELD_LOG_LEVEL", value = "INFO" },
       { name = "PARKSHIELD_SMTP_HOST", value = var.smtp_host },
       { name = "PARKSHIELD_SMTP_USERNAME", value = var.smtp_username },

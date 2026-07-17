@@ -23,6 +23,7 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         "push_provider_token": "push-secret",
         "tow_provider_url": "https://tow.example.net/lookup",
         "tow_provider_token": "tow-secret",
+        "media_bucket": "parkshield-production-media",
     }
     values.update(overrides)
     return values
@@ -36,6 +37,8 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         ({"smtp_password": None}, "SMTP credentials"),
         ({"push_provider_token": None}, "push provider credentials"),
         ({"tow_provider_token": None}, "tow lookup provider credentials"),
+        ({"media_bucket": None}, "media_bucket"),
+        ({"media_bucket": "   "}, "media_bucket"),
         ({"push_provider_url": "http://push.example.net"}, "push provider URL"),
         ({"tow_provider_url": "http://tow.example.net"}, "tow lookup provider URL"),
     ],

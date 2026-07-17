@@ -41,6 +41,16 @@ class CommunityReport:
     created_at: datetime
     expires_at: datetime
     moderation_reason: str | None = None
+    photo_object_key: str | None = None
+    photo_content_type: str | None = None
+    photo_size_bytes: int | None = None
+    photo_retained_until: datetime | None = None
+    photo_deleted_at: datetime | None = None
+
+    @property
+    def photo_available(self) -> bool:
+        """Return whether governed photo evidence is still retained."""
+        return self.photo_object_key is not None and self.photo_deleted_at is None
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,3 +90,9 @@ class CommunityReportRepository(Protocol):
     async def resolve_appeal(
         self, appeal_id: UUID, status: AppealStatus, reason: str, resolved_at: datetime
     ) -> ReportAppeal | None: ...
+    async def expired_media(
+        self, retained_before: datetime, limit: int
+    ) -> tuple[CommunityReport, ...]: ...
+    async def mark_photo_deleted(
+        self, report_id: UUID, deleted_at: datetime
+    ) -> CommunityReport | None: ...

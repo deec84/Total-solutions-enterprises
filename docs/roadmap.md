@@ -53,3 +53,7 @@ Privacy-safe tow lookup provider abstraction, impound details, required document
 ## 13. Parking recommendations — implemented; PostGIS/native CI gates required
 
 Nearby alternatives ranked by walk distance, safety, price, historical towing frequency, ratings, and availability with explicit provenance and degraded-data behavior.
+
+## 14. Community media lifecycle — implemented; object-store/cloud gate required
+
+Private KMS-encrypted evidence storage, integrity metadata, bounded retention, privileged short-lived access, immediate logical deletion after rejection, retryable expiry purge, audit events, and fail-closed deployed configuration. Exit: lifecycle, API, adapter, migration, security, and infrastructure gates pass without real cloud credentials; an account-owned staging apply and object-store exercise remain mandatory before promotion.

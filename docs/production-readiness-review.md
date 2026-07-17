@@ -7,17 +7,18 @@ The application source, migrations, client, CI/CD, infrastructure, and operation
 ## Verified locally
 
 - Authentication fixture isolation: 11/11 auth tests pass; one repository graph per test and one shared instance across its requests.
-- Backend: 107/107 tests; 91.45% coverage with required minimum unchanged at 90%.
+- Backend: 122/122 tests; 91.78% coverage with required minimum unchanged at 90%.
 - Ruff, strict mypy, Bandit medium/high, and pip-audit: pass; no known audited dependency vulnerabilities.
-- Alembic: one linear head at `0010_expand_mfa_secret`; full offline SQL render succeeds.
+- Alembic: one linear head at `0011_community_media_lifecycle`; full offline SQL render succeeds.
 - Terraform: formatting and provider-schema validation pass with AWS 6.55.0.
 - Trivy IaC: zero high/critical findings; no ignored findings.
 - Flutter: dependency resolution, Dart formatting, Analyze with fatal infos, and all 40 API/controller/rendering/model/accessibility/stop-detection tests pass; LCOV records 1,262/1,626 executable lines (77.61%) against the enforced 75% minimum.
 - Android: Temurin 17, API/target 36, Build Tools 36.0.0, NDK 28.2.13676358, and all SDK licenses are installed; the debug APK builds successfully.
 - GitHub workflows: YAML parse and Actionlint 1.7.12 pass; iOS export plist validates.
-- Repository onboarding: the ephemeral-index preflight tracks 301 intended files, includes dependency locks and the Android Gradle Wrapper, and rejects ignored secrets/signing/state/build paths, high-confidence credential patterns, whitespace errors, and files over 50 MB.
+- Repository onboarding: the ephemeral-index preflight tracks 307 intended files, includes dependency locks and the Android Gradle Wrapper, and rejects ignored secrets/signing/state/build paths, high-confidence credential patterns, whitespace errors, and files over 50 MB.
 - Container onboarding: `docker-compose.yml` now gates API startup on a successful Alembic head migration against `postgis/postgis:16-3.4-alpine`; a required hosted Compose smoke job verifies readiness, PostGIS, and migration head.
 - AWS onboarding: Terraform creates the Route 53 origin alias and emits the exact ECS network JSON consumed by GitHub. Production deployment requires a staging-approved ECR digest and rejects an empty or tag-based image input.
+- Community media: the API stores no raw bytes in PostgreSQL, uses SHA-256-verified private S3 objects through the ECS task role, limits retention to 30 days, deletes rejected evidence, issues only short-lived privileged access grants, and audits access/purge operations. Terraform blocks public access, denies insecure transport, applies KMS encryption, version expiry, and least-privilege task permissions.
 
 ## Mandatory external promotion evidence
 
@@ -26,6 +27,7 @@ The application source, migrations, client, CI/CD, infrastructure, and operation
 3. Contracted HTTPS map, SMTP, push, and municipal tow providers with explicit network ranges and Secrets Manager values.
 4. Reviewed municipal/parking-facility data import with provenance, expiry, legal rights, and data-quality ownership.
 5. Valid Android/Apple signing custody and successful signed release artifacts before store submission.
+6. Staging evidence that the account-owned KMS/S3 policy accepts upload, privileged access, rejection deletion, expiry purge, and noncurrent-version expiration without public exposure.
 
 No CI job is skipped or marked allowed-to-fail to satisfy these gates.
 

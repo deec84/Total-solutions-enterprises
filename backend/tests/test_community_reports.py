@@ -19,6 +19,7 @@ from app.modules.community.service import (
 from app.modules.identity.domain import Role, User
 from app.presentation.api.routes.auth import current_user
 from app.presentation.api.routes.community import (
+    community_media_store,
     community_repository,
     moderate_report,
     resolve_appeal,
@@ -39,7 +40,9 @@ def _png() -> bytes:
     return buffer.getvalue()
 
 
-def _application() -> tuple[TestClient, InMemoryCommunityReportRepository]:
+def _application(
+    media_store: object | None = None,
+) -> tuple[TestClient, InMemoryCommunityReportRepository]:
     repository = InMemoryCommunityReportRepository()
     user = User(
         uuid4(), "reporter@example.com", "hash", Role.USER, True, True, datetime.now(UTC)
@@ -47,6 +50,8 @@ def _application() -> tuple[TestClient, InMemoryCommunityReportRepository]:
     application = create_app()
     application.dependency_overrides[current_user] = lambda: user
     application.dependency_overrides[community_repository] = lambda: repository
+    if media_store is not None:
+        application.dependency_overrides[community_media_store] = lambda: media_store
     return TestClient(application), repository
 
 
@@ -200,6 +205,7 @@ def test_photo_submission_validates_media_and_publishes_evidence() -> None:
     assert accepted.status_code == 201
     assert accepted.json()["status"] == "published"
     assert accepted.json()["photo_sha256"] is not None
+    assert accepted.json()["photo_available"] is False
 
 
 def test_photo_submission_rejects_corrupt_image() -> None:
@@ -240,6 +246,7 @@ def test_privileged_mutations_append_actor_and_subject_to_audit_chain() -> None:
             actor,
             repository,  # type: ignore[arg-type]
             audit,  # type: ignore[arg-type]
+            None,
         )
         appeal = await service.appeal(
             report.id, reporter_id, "The original image includes the entire sign"

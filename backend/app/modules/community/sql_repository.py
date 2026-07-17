@@ -37,6 +37,11 @@ def _domain(row: CommunityReportRow) -> CommunityReport:
         created_at=row.created_at,
         expires_at=row.expires_at,
         moderation_reason=row.moderation_reason,
+        photo_object_key=row.photo_object_key,
+        photo_content_type=row.photo_content_type,
+        photo_size_bytes=row.photo_size_bytes,
+        photo_retained_until=row.photo_retained_until,
+        photo_deleted_at=row.photo_deleted_at,
     )
 
 
@@ -70,6 +75,11 @@ class SqlCommunityReportRepository:
                 validation_score=report.validation_score,
                 fingerprint=report.fingerprint,
                 photo_sha256=report.photo_sha256,
+                photo_object_key=report.photo_object_key,
+                photo_content_type=report.photo_content_type,
+                photo_size_bytes=report.photo_size_bytes,
+                photo_retained_until=report.photo_retained_until,
+                photo_deleted_at=report.photo_deleted_at,
                 moderation_reason=report.moderation_reason,
                 created_at=report.created_at,
                 expires_at=report.expires_at,
@@ -173,3 +183,31 @@ class SqlCommunityReportRepository:
         )
         row = await self._session.get(ReportAppealRow, appeal_id)
         return _appeal(row) if row else None
+
+    async def expired_media(
+        self, retained_before: datetime, limit: int
+    ) -> tuple[CommunityReport, ...]:
+        rows = await self._session.scalars(
+            select(CommunityReportRow)
+            .where(
+                CommunityReportRow.photo_object_key.is_not(None),
+                CommunityReportRow.photo_deleted_at.is_(None),
+                CommunityReportRow.photo_retained_until <= retained_before,
+            )
+            .order_by(CommunityReportRow.photo_retained_until)
+            .limit(limit)
+        )
+        return tuple(_domain(row) for row in rows)
+
+    async def mark_photo_deleted(
+        self, report_id: UUID, deleted_at: datetime
+    ) -> CommunityReport | None:
+        await self._session.execute(
+            update(CommunityReportRow)
+            .where(
+                CommunityReportRow.id == report_id,
+                CommunityReportRow.photo_deleted_at.is_(None),
+            )
+            .values(photo_deleted_at=deleted_at)
+        )
+        return await self.get(report_id)
