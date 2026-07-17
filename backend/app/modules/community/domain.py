@@ -1,5 +1,6 @@
 """Community report domain and persistence port."""
 
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -90,9 +91,14 @@ class CommunityReportRepository(Protocol):
     async def resolve_appeal(
         self, appeal_id: UUID, status: AppealStatus, reason: str, resolved_at: datetime
     ) -> ReportAppeal | None: ...
+    @abstractmethod
     async def expired_media(
         self, retained_before: datetime, limit: int
-    ) -> tuple[CommunityReport, ...]: ...
+    ) -> tuple[CommunityReport, ...]:
+        """Return retained evidence whose deletion deadline has elapsed."""
+
+    @abstractmethod
     async def mark_photo_deleted(
         self, report_id: UUID, deleted_at: datetime
-    ) -> CommunityReport | None: ...
+    ) -> CommunityReport | None:
+        """Record that a report's governed evidence was deleted."""

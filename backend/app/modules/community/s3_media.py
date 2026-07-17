@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+from abc import abstractmethod
 from datetime import datetime
 from importlib import import_module
 from typing import Protocol, cast
@@ -11,15 +12,23 @@ from app.modules.community.media import MediaStorageError
 
 
 class S3Client(Protocol):
-    def put_object(self, **kwargs: object) -> object: ...
-    def delete_object(self, **kwargs: object) -> object: ...
+    @abstractmethod
+    def put_object(self, **kwargs: object) -> object:
+        """Upload one object through the provider client."""
+
+    @abstractmethod
+    def delete_object(self, **kwargs: object) -> object:
+        """Delete one object through the provider client."""
+
+    @abstractmethod
     def generate_presigned_url(
         self,
         client_method: str,
         *,
         Params: dict[str, str],
         ExpiresIn: int,
-    ) -> str: ...
+    ) -> str:
+        """Sign one short-lived provider request."""
 
 
 class S3CommunityMediaStore:

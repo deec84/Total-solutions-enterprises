@@ -7,7 +7,7 @@ The application source, migrations, client, CI/CD, infrastructure, and operation
 ## Verified locally
 
 - Authentication fixture isolation: 11/11 auth tests pass; one repository graph per test and one shared instance across its requests.
-- Backend: 122/122 tests; 91.78% coverage with required minimum unchanged at 90%.
+- Backend: 122/122 tests; 91.84% coverage with required minimum unchanged at 90%.
 - Ruff, strict mypy, Bandit medium/high, and pip-audit: pass; no known audited dependency vulnerabilities.
 - Alembic: one linear head at `0011_community_media_lifecycle`; full offline SQL render succeeds.
 - Terraform: formatting and provider-schema validation pass with AWS 6.55.0.

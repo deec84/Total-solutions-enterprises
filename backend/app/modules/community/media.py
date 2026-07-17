@@ -1,6 +1,7 @@
 """Governed lifecycle for transient community photo evidence."""
 
 import hashlib
+from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
@@ -22,6 +23,7 @@ class MediaUnavailableError(ValueError):
 
 
 class CommunityMediaStore(Protocol):
+    @abstractmethod
     async def put(
         self,
         *,
@@ -30,11 +32,16 @@ class CommunityMediaStore(Protocol):
         content_type: str,
         checksum_sha256: str,
         retained_until: datetime,
-    ) -> None: ...
+    ) -> None:
+        """Store private evidence with integrity and retention metadata."""
 
-    async def delete(self, key: str) -> None: ...
+    @abstractmethod
+    async def delete(self, key: str) -> None:
+        """Delete private evidence by its internal object key."""
 
-    async def create_read_url(self, key: str, expires_seconds: int) -> str: ...
+    @abstractmethod
+    async def create_read_url(self, key: str, expires_seconds: int) -> str:
+        """Create a short-lived private URL for privileged review."""
 
 
 @dataclass(frozen=True, slots=True)
