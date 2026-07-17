@@ -8,6 +8,14 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.models import SessionRow, UserRow
+from app.modules.community.domain import (
+    AppealStatus,
+    CommunityReport,
+    ReportAppeal,
+    ReportCategory,
+    ReportStatus,
+)
+from app.modules.community.sql_repository import SqlCommunityReportRepository
 from app.modules.identity.audit import AuditAction, event
 from app.modules.identity.domain import Role, User
 from app.modules.identity.sql_repositories import (
@@ -115,5 +123,44 @@ def test_sql_audit_sink_flushes_append_only_event() -> None:
         await sink.record(event(AuditAction.LOGIN_SUCCEEDED, uuid4()))
         db.add.assert_called_once()
         db.flush.assert_awaited_once()
+
+    asyncio.run(scenario())
+
+
+def test_sql_community_repository_flushes_rows_before_followup_updates() -> None:
+    async def scenario() -> None:
+        db = session_mock()
+        repository = SqlCommunityReportRepository(db)
+        reporter_id, report_id, appeal_id = uuid4(), uuid4(), uuid4()
+        created_at = datetime.now(UTC)
+        await repository.add(
+            CommunityReport(
+                report_id,
+                reporter_id,
+                ReportCategory.TOWING,
+                25.7617,
+                -80.1918,
+                "Tow truck removed a vehicle beside this curb",
+                ReportStatus.PENDING,
+                0.65,
+                "fingerprint",
+                None,
+                created_at,
+                created_at + timedelta(days=30),
+            )
+        )
+        await repository.add_appeal(
+            ReportAppeal(
+                appeal_id,
+                report_id,
+                reporter_id,
+                "The original uncropped image is available",
+                AppealStatus.OPEN,
+                created_at,
+            )
+        )
+
+        assert db.add.call_count == 2
+        assert db.flush.await_count == 2
 
     asyncio.run(scenario())

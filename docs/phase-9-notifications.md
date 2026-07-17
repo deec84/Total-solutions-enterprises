@@ -27,4 +27,4 @@ Location monitoring starts only after the user enables the feature and grants OS
 
 ## Exit decision
 
-The notification module is complete in source. The aggregate mobile suite passes 40/40 tests at 77.61% line coverage, including five deterministic parking-stop cases; the backend suite passes 105/105 at 91.33% coverage against the unchanged 90% requirement. No test is skipped.
+The notification module is complete in source. The aggregate mobile suite passes 40/40 tests at 77.61% line coverage, including five deterministic parking-stop cases; the backend suite passes 107/107 at 91.45% coverage against the unchanged 90% requirement. No test is skipped.

@@ -75,6 +75,7 @@ class SqlCommunityReportRepository:
                 expires_at=report.expires_at,
             )
         )
+        await self._session.flush()
 
     async def find_recent_duplicate(
         self, fingerprint: str, since: datetime
@@ -151,6 +152,7 @@ class SqlCommunityReportRepository:
                 resolution_reason=appeal.resolution_reason,
             )
         )
+        await self._session.flush()
 
     async def open_appeal(self, report_id: UUID) -> ReportAppeal | None:
         row = await self._session.scalar(

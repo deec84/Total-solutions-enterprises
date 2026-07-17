@@ -3,7 +3,7 @@
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0009_distributed_login_rate_limit"
+revision = "0009_distributed_login_limits"
 down_revision = "0008_parking_facilities"
 branch_labels = None
 depends_on = None
