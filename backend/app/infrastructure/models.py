@@ -4,7 +4,18 @@ from datetime import datetime
 from uuid import UUID
 
 from geoalchemy2 import Geography, Geometry
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, String, Text, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Identity,
+    Index,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -138,7 +149,9 @@ class AdminAuditRow(Base):
     __tablename__ = "admin_audit_events"
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
-    sequence: Mapped[int] = mapped_column(autoincrement=True, unique=True, nullable=False)
+    sequence: Mapped[int] = mapped_column(
+        BigInteger, Identity(), unique=True, nullable=False
+    )
     actor_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
     action: Mapped[str] = mapped_column(String(96), nullable=False)
     subject_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)

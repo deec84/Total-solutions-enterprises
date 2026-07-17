@@ -14,6 +14,6 @@
 
 ## Gate
 
-Phase 5 was approved at its phase gate with 42 backend tests and 93.65% coverage. The current aggregate qualification is stronger: 106/106 backend tests at 91.45% coverage, 40/40 Flutter tests at 77.61% line coverage, and the Android debug build pass. The versioned evaluation set still passes exactly. PostGIS integration and iOS remain required GitHub Actions gates.
+Phase 5 was approved at its phase gate with 42 backend tests and 93.65% coverage. The current aggregate qualification is stronger: 107/107 backend tests at 91.45% coverage, 40/40 Flutter tests at 77.61% line coverage, and the Android debug build pass. The versioned evaluation set still passes exactly. PostGIS integration and iOS remain required GitHub Actions gates.
 
 Future learned models may replace the conservative predictor only after offline calibration, geographic slicing, false-safe evaluation, shadow deployment, monitoring, and rollback approval. They cannot replace the deterministic official-data layer.

@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
+from app.infrastructure.models import AdminAuditRow
 from app.modules.admin.audit import GENESIS_HASH, AdminAuditRecord, event_hash, verify_chain
 from app.modules.admin.sql_audit import SqlAdminAuditTrail
 
@@ -65,3 +66,10 @@ def test_sql_audit_integrity_handles_empty_chain() -> None:
         assert count == 0
 
     asyncio.run(scenario())
+
+
+def test_admin_audit_sequence_uses_database_identity() -> None:
+    sequence = AdminAuditRow.__table__.c.sequence
+    assert sequence.identity is not None
+    assert sequence.unique
+    assert not sequence.nullable
