@@ -95,7 +95,7 @@ jobs:
         env:
           ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
           ECS_SERVICE: ${{ vars.ECS_SERVICE }}
-      - uses: aws-actions/amazon-ecs-render-task-definition@v1.8.5
+      - uses: aws-actions/amazon-ecs-render-task-definition@v1.9.0
         id: render
         with:
           task-definition: task-definition.json
