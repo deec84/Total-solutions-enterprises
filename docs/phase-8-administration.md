@@ -4,7 +4,7 @@
 
 - Role-restricted administrative API and Flutter surface, hidden from standard users.
 - RFC 6238 TOTP enrollment and confirmation; a fresh six-digit code is mandatory for overview, moderation, appeals, and audit integrity checks.
-- TOTP secrets encrypted at rest with authenticated Fernet encryption; PostgreSQL never receives the plaintext secret.
+- TOTP secrets encrypted at rest with authenticated Fernet encryption; PostgreSQL stores the full ciphertext in a text column and never receives the plaintext secret.
 - Operational overview for users, active sessions, and community-report states.
 - Moderation queue with mandatory reasons for approve/reject decisions.
 - Appeal uphold/overturn workflow protected by the same privileged policy.
