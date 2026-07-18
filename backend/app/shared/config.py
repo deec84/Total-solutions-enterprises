@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     municipal_max_upload_bytes: int = Field(
         default=5 * 1024 * 1024, ge=1024, le=10 * 1024 * 1024
     )
+    billing_enabled: bool = False
+    billing_subject_secret: str = "local-billing-subject-secret-change-before-production"
+    billing_gateway_url: str | None = None
+    billing_gateway_token: str | None = None
+    apple_premium_product_id: str | None = None
+    google_premium_product_id: str | None = None
 
     @model_validator(mode="after")
     def validate_deployed_environment(self) -> Self:
@@ -69,6 +75,23 @@ class Settings(BaseSettings):
             errors.append("tow lookup provider URL must use HTTPS")
         if not self.media_bucket or not self.media_bucket.strip():
             errors.append("media_bucket is required for governed community evidence")
+        if (
+            len(self.billing_subject_secret) < 32
+            or "change" in self.billing_subject_secret.casefold()
+        ):
+            errors.append(
+                "billing_subject_secret must be a non-default secret of at least 32 characters"
+            )
+        if self.billing_enabled:
+            billing_url = self.billing_gateway_url
+            if not all((billing_url, self.billing_gateway_token)):
+                errors.append("billing verification gateway credentials are required")
+            elif billing_url is not None and not billing_url.startswith("https://"):
+                errors.append("billing verification gateway URL must use HTTPS")
+            if not any(
+                (self.apple_premium_product_id, self.google_premium_product_id)
+            ):
+                errors.append("at least one approved store product ID is required")
         if errors:
             raise ValueError("; ".join(errors))
         return self

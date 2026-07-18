@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.models import (
     AlertDeliveryRow,
     AuditEventRow,
+    BillingSubscriptionRow,
     CommunityReportRow,
     DataRightsRequestRow,
     MunicipalImportBatchRow,
@@ -23,6 +24,15 @@ from app.infrastructure.models import (
     SessionRow,
     UserRow,
 )
+from app.modules.billing.domain import (
+    BillingEvent,
+    EntitlementCode,
+    StoreEnvironment,
+    StorePlatform,
+    SubscriptionRecord,
+    SubscriptionStatus,
+)
+from app.modules.billing.sql_repository import SqlBillingRepository
 from app.modules.community.domain import (
     AppealStatus,
     CommunityReport,
@@ -401,12 +411,29 @@ def test_sql_privacy_export_minimizes_sensitive_fields_and_deletes_account() -> 
         audit = AuditEventRow(
             id=uuid4(), action="session.login_succeeded", subject_id=user_id, occurred_at=now
         )
+        subscription = BillingSubscriptionRow(
+            id=uuid4(),
+            user_id=user_id,
+            subject_reference="e" * 64,
+            platform="apple_app_store",
+            product_id="ai.parkshield.synthetic.premium",
+            entitlement="premium",
+            status="active",
+            environment="sandbox",
+            transaction_reference="f" * 64,
+            original_transaction_reference="a" * 64,
+            purchased_at=now,
+            expires_at=now + timedelta(days=30),
+            verified_at=now,
+            auto_renews=True,
+        )
         db.scalars.side_effect = [
             [session],
             [report],
             [appeal],
             [consent],
             [request],
+            [subscription],
             [device],
             [delivery],
             [audit],
@@ -430,6 +457,19 @@ def test_sql_privacy_export_minimizes_sensitive_fields_and_deletes_account() -> 
             "approved_reports": 2,
             "rejected_reports": 1,
         }
+        assert exported["store_subscriptions"] == [
+            {
+                "platform": "apple_app_store",
+                "product_id": "ai.parkshield.synthetic.premium",
+                "entitlement": "premium",
+                "status": "active",
+                "environment": "sandbox",
+                "purchased_at": now.isoformat(),
+                "expires_at": (now + timedelta(days=30)).isoformat(),
+                "verified_at": now.isoformat(),
+                "auto_renews": True,
+            }
+        ]
 
         db.scalars.side_effect = None
         db.scalars.return_value = [report.photo_object_key, None]
@@ -579,5 +619,61 @@ def test_sql_municipal_repository_maps_sources_batches_and_import_records() -> N
             )
             is None
         )
+
+    asyncio.run(scenario())
+
+
+def test_sql_billing_repository_maps_and_idempotently_upserts_verified_state() -> None:
+    async def scenario() -> None:
+        db = session_mock()
+        repository = SqlBillingRepository(db)
+        now = datetime.now(UTC)
+        user_id = uuid4()
+        record = SubscriptionRecord(
+            uuid4(),
+            user_id,
+            "a" * 64,
+            StorePlatform.APPLE_APP_STORE,
+            "ai.parkshield.synthetic.premium",
+            EntitlementCode.PREMIUM,
+            SubscriptionStatus.ACTIVE,
+            StoreEnvironment.SANDBOX,
+            "b" * 64,
+            "c" * 64,
+            now - timedelta(days=1),
+            now + timedelta(days=29),
+            now,
+            True,
+        )
+        row = BillingSubscriptionRow(
+            id=record.id,
+            user_id=record.user_id,
+            subject_reference=record.subject_reference,
+            platform=record.platform.value,
+            product_id=record.product_id,
+            entitlement=record.entitlement.value,
+            status=record.status.value,
+            environment=record.environment.value,
+            transaction_reference=record.transaction_reference,
+            original_transaction_reference=record.original_transaction_reference,
+            purchased_at=record.purchased_at,
+            expires_at=record.expires_at,
+            verified_at=record.verified_at,
+            auto_renews=record.auto_renews,
+        )
+        db.scalar.return_value = row
+        assert await repository.current(user_id) == record
+
+        billing_event = BillingEvent(
+            uuid4(), record.id, "d" * 64, record.status, now, now
+        )
+        persisted = await repository.reconcile(record, billing_event)
+        assert persisted == record
+        assert db.execute.await_count == 2
+
+        db.scalar.return_value = None
+        assert await repository.current(uuid4()) is None
+        with pytest.raises(RuntimeError, match="could not be persisted"):
+            await repository.reconcile(record, billing_event)
 
     asyncio.run(scenario())

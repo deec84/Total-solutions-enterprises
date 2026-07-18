@@ -24,6 +24,7 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         "tow_provider_url": "https://tow.example.net/lookup",
         "tow_provider_token": "tow-secret",
         "media_bucket": "parkshield-production-media",
+        "billing_subject_secret": "b" * 64,
     }
     values.update(overrides)
     return values
@@ -41,6 +42,25 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
         ({"media_bucket": "   "}, "media_bucket"),
         ({"push_provider_url": "http://push.example.net"}, "push provider URL"),
         ({"tow_provider_url": "http://tow.example.net"}, "tow lookup provider URL"),
+        ({"billing_subject_secret": "change-me"}, "billing_subject_secret"),
+        ({"billing_enabled": True}, "billing verification gateway credentials"),
+        (
+            {
+                "billing_enabled": True,
+                "billing_gateway_url": "http://billing.example.net/verify",
+                "billing_gateway_token": "token",
+                "apple_premium_product_id": "ai.parkshield.premium",
+            },
+            "billing verification gateway URL",
+        ),
+        (
+            {
+                "billing_enabled": True,
+                "billing_gateway_url": "https://billing.example.net/verify",
+                "billing_gateway_token": "token",
+            },
+            "store product ID",
+        ),
     ],
 )
 def test_deployed_configuration_fails_fast(
@@ -52,6 +72,20 @@ def test_deployed_configuration_fails_fast(
 
 def test_local_configuration_keeps_safe_development_defaults() -> None:
     assert Settings(environment="local").environment == "local"
+
+
+def test_deployed_configuration_accepts_disabled_billing_and_valid_providers() -> None:
+    disabled = Settings(**deployed_settings())
+    enabled = Settings(
+        **deployed_settings(
+            billing_enabled=True,
+            billing_gateway_url="https://billing.example.net/verify",
+            billing_gateway_token="synthetic-provider-token",
+            apple_premium_product_id="ai.parkshield.synthetic.premium",
+        )
+    )
+    assert disabled.billing_enabled is False
+    assert enabled.billing_enabled is True
 
 
 def test_access_log_is_structured_and_excludes_query_and_headers(

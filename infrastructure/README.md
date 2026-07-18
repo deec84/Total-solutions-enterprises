@@ -17,11 +17,11 @@ terraform -chdir=terraform init \
   -backend-config="encrypt=true"
 ```
 
-Terraform state contains generated database/JWT material and must be treated as a production secret. Never use local state for a deployed environment.
+Terraform state contains generated database/JWT/billing-subject material and must be treated as a production secret. Never use local state for a deployed environment.
 
 ## Required inputs
 
-Copy the matching `terraform/staging.tfvars.example` or `terraform/production.tfvars.example` outside the repository and replace every placeholder. `image_uri` must use an ECR digest (`@sha256:`). SMTP, push, and municipal tow-lookup tokens must already exist as single-value Secrets Manager secrets; Terraform receives only their ARNs. Provider egress CIDRs must be explicit and cannot be the full internet. The public Route 53 hosted zone and validated regional ACM origin certificate are bootstrap dependencies; Terraform creates the origin alias record.
+Copy the matching `terraform/staging.tfvars.example` or `terraform/production.tfvars.example` outside the repository and replace every placeholder. `image_uri` must use an ECR digest (`@sha256:`). SMTP, push, and municipal tow-lookup tokens must already exist as single-value Secrets Manager secrets; Terraform receives only their ARNs. Billing remains false by default; enabling it additionally requires an approved HTTPS verification gateway, its single-value token-secret ARN, and at least one real store product ID. Provider egress CIDRs must include only exact approved ranges and cannot be the full internet. The public Route 53 hosted zone and validated regional ACM origin certificate are bootstrap dependencies; Terraform creates the origin alias record.
 
 ```sh
 terraform -chdir=terraform fmt -check -recursive

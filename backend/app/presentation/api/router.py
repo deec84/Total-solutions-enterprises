@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.presentation.api.routes.admin import router as admin_router
 from app.presentation.api.routes.auth import router as auth_router
+from app.presentation.api.routes.billing import router as billing_router
 from app.presentation.api.routes.community import router as community_router
 from app.presentation.api.routes.health import router as health_router
 from app.presentation.api.routes.ingestion import router as ingestion_router
@@ -17,6 +18,7 @@ from app.presentation.api.routes.sign_scanner import router as sign_scanner_rout
 
 api_router = APIRouter()
 api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
+api_router.include_router(billing_router, prefix="/billing", tags=["billing-entitlements"])
 api_router.include_router(health_router, prefix="/health", tags=["health"])
 api_router.include_router(parking_router, prefix="/parking", tags=["parking-map"])
 api_router.include_router(parking_ai_router, prefix="/ai", tags=["parking-ai"])

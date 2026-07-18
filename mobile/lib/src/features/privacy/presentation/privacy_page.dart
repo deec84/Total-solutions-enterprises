@@ -107,7 +107,9 @@ class _PrivacyPageState extends State<PrivacyPage> {
                   ?.copyWith(color: Theme.of(context).colorScheme.error)),
           const Text(
             'This permanently removes the account, sessions, preferences, reports, appeals, '
-            'and retained community evidence. This cannot be undone.',
+            'and retained community evidence. It does not cancel an Apple or Google '
+            'subscription; cancel that in the store. Pseudonymous billing evidence may be '
+            'retained for reconciliation and legal obligations. This cannot be undone.',
           ),
           const SizedBox(height: 12),
           TextField(

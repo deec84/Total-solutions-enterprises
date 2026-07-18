@@ -11,7 +11,7 @@ Production-oriented monorepo for ParkShield AI, a parking-intelligence platform 
 
 ## Delivery status
 
-Phases 1–16 implement identity, PostGIS risk mapping, explainable Parking AI, sign scanning, community trust, governed media evidence, administration, preventive alerts, towing recovery, nearby recommendations, privacy rights, governed municipal-data ingestion, system qualification, and deployment automation. Production promotion remains deliberately gated on green CI, environment-owned cloud/provider credentials, approved municipal/map data rights, legal approval, infrastructure apply evidence, and store signing approval. See `docs/roadmap.md`, `docs/phase-11-deployment.md`, `docs/phase-14-community-media-lifecycle.md`, `docs/phase-15-privacy-rights.md`, and `docs/phase-16-municipal-ingestion.md`.
+Phases 1–17 implement identity, PostGIS risk mapping, explainable Parking AI, sign scanning, community trust, governed media evidence, administration, preventive alerts, towing recovery, nearby recommendations, privacy rights, governed municipal-data ingestion, provider-neutral entitlements, system qualification, and deployment automation. Production promotion remains deliberately gated on green CI, environment-owned cloud/provider credentials, approved municipal/map data rights, legal approval, infrastructure apply evidence, store contracts/products/signing, and real purchase-verification evidence. See `docs/roadmap.md`, `docs/phase-11-deployment.md`, `docs/phase-14-community-media-lifecycle.md`, `docs/phase-15-privacy-rights.md`, `docs/phase-16-municipal-ingestion.md`, and `docs/phase-17-billing-entitlements.md`.
 
 ## Local startup
 

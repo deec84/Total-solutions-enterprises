@@ -3,6 +3,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:parkshield_mobile/src/features/admin/presentation/admin_page.dart';
 import 'package:parkshield_mobile/src/features/alerts/presentation/alerts_page.dart';
 import 'package:parkshield_mobile/src/features/community/presentation/community_report_page.dart';
+import 'package:parkshield_mobile/src/features/billing/presentation/membership_page.dart';
 import 'package:parkshield_mobile/src/features/map/presentation/parking_map_page.dart';
 import 'package:parkshield_mobile/src/features/parking_ai/presentation/parking_assistant_page.dart';
 import 'package:parkshield_mobile/src/features/recommendations/presentation/parking_recommendations_page.dart';
@@ -70,6 +71,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
         apiBaseUrl: widget.apiBaseUrl,
         onAccountDeleted: widget.onAccountDeleted,
       ),
+      MembershipPage(apiBaseUrl: widget.apiBaseUrl),
       if (isPrivileged) AdminPage(apiBaseUrl: widget.apiBaseUrl),
     ];
     final List<String> titles = <String>[
@@ -81,6 +83,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
       'Alerts',
       'Tow recovery',
       'Privacy',
+      'Membership',
       if (isPrivileged) 'Administration',
     ];
     final List<NavigationDrawerDestination> destinations =
@@ -124,6 +127,11 @@ class _BootstrapPageState extends State<BootstrapPage> {
         icon: Icon(Icons.privacy_tip_outlined),
         selectedIcon: Icon(Icons.privacy_tip),
         label: Text('Privacy and data'),
+      ),
+      const NavigationDrawerDestination(
+        icon: Icon(Icons.workspace_premium_outlined),
+        selectedIcon: Icon(Icons.workspace_premium),
+        label: Text('Membership'),
       ),
       if (isPrivileged)
         const NavigationDrawerDestination(

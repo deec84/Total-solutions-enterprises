@@ -15,6 +15,8 @@ from app.infrastructure.database import engine, session_factory
 from app.infrastructure.models import (
     AdminAuditRow,
     AlertDeliveryRow,
+    BillingEventRow,
+    BillingSubscriptionRow,
     DataRightsRequestRow,
     LoginRateLimitRow,
     MunicipalImportBatchRow,
@@ -26,6 +28,17 @@ from app.infrastructure.models import (
 )
 from app.main import create_app
 from app.modules.admin.sql_audit import SqlAdminAuditTrail
+from app.modules.billing.domain import (
+    BillingProduct,
+    EntitlementCode,
+    PurchaseVerificationRequest,
+    StoreEnvironment,
+    StorePlatform,
+    SubscriptionStatus,
+    VerifiedPurchase,
+)
+from app.modules.billing.service import BillingService
+from app.modules.billing.sql_repository import SqlBillingRepository
 from app.modules.community.domain import ReportCategory, ReportStatus
 from app.modules.community.service import CommunityReportService
 from app.modules.community.sql_repository import SqlCommunityReportRepository
@@ -473,6 +486,118 @@ def test_governed_municipal_import_upserts_synthetic_postgis_records() -> None:
             await session.execute(
                 delete(MunicipalSourceRow).where(
                     MunicipalSourceRow.id.in_([zone_source.id, facility_source.id])
+                )
+            )
+
+    run_isolated_scenario(scenario)
+
+
+def test_verified_billing_ledger_survives_account_deletion_without_store_identifiers() -> None:
+    class SyntheticVerifier:
+        def __init__(self, evidence: VerifiedPurchase) -> None:
+            self._evidence = evidence
+
+        async def verify(
+            self, request: PurchaseVerificationRequest
+        ) -> VerifiedPurchase:
+            return self._evidence
+
+    async def scenario() -> None:
+        user_id = uuid4()
+        passwords = PasswordManager()
+        subject = User(
+            user_id,
+            f"billing-{user_id}@example.com",
+            passwords.hash("integration-password"),
+            Role.USER,
+            True,
+            True,
+            datetime.now(UTC),
+        )
+        now = datetime.now(UTC)
+        evidence = VerifiedPurchase(
+            user_id,
+            StorePlatform.APPLE_APP_STORE,
+            "ai.parkshield.synthetic.premium",
+            EntitlementCode.PREMIUM,
+            SubscriptionStatus.ACTIVE,
+            StoreEnvironment.SANDBOX,
+            f"synthetic-provider-event-{user_id}",
+            f"synthetic-store-transaction-{user_id}",
+            f"synthetic-store-original-{user_id}",
+            now - timedelta(minutes=1),
+            now + timedelta(days=30),
+            now,
+            True,
+        )
+        async with session_factory() as session, session.begin():
+            await SqlUserRepository(session).add(subject)
+            billing = BillingService(
+                SqlBillingRepository(session),
+                SyntheticVerifier(evidence),
+                "integration-billing-subject-secret-at-least-32-characters",
+                (
+                    BillingProduct(
+                        StorePlatform.APPLE_APP_STORE,
+                        evidence.product_id,
+                        EntitlementCode.PREMIUM,
+                    ),
+                ),
+                True,
+                frozenset({StoreEnvironment.SANDBOX}),
+            )
+            entitlement = await billing.verify_purchase(
+                user_id,
+                StorePlatform.APPLE_APP_STORE,
+                evidence.product_id,
+                "SYNTHETIC PAYLOAD — NOT A REAL RECEIPT",
+            )
+            assert entitlement.tier == "premium"
+            export = await PrivacyService(
+                SqlPrivacyRepository(session),
+                passwords,
+                "integration-privacy-subject-secret",
+                "integration-v1",
+            ).export(user_id)
+            assert export.data["store_subscriptions"][0]["status"] == "active"
+
+        async with session_factory() as session, session.begin():
+            privacy = PrivacyService(
+                SqlPrivacyRepository(session),
+                passwords,
+                "integration-privacy-subject-secret",
+                "integration-v1",
+            )
+            deletion_request_id = await privacy.delete_account(
+                subject,
+                "integration-password",
+                ACCOUNT_DELETION_CONFIRMATION,
+            )
+
+        async with session_factory() as session, session.begin():
+            retained = await session.scalar(
+                select(BillingSubscriptionRow).where(
+                    BillingSubscriptionRow.subject_reference.is_not(None),
+                    BillingSubscriptionRow.product_id == evidence.product_id,
+                )
+            )
+            assert retained is not None
+            assert retained.user_id is None
+            assert retained.transaction_reference != evidence.transaction_id
+            assert retained.original_transaction_reference != evidence.original_transaction_id
+            await session.execute(
+                delete(BillingEventRow).where(
+                    BillingEventRow.subscription_id == retained.id
+                )
+            )
+            await session.execute(
+                delete(BillingSubscriptionRow).where(
+                    BillingSubscriptionRow.id == retained.id
+                )
+            )
+            await session.execute(
+                delete(DataRightsRequestRow).where(
+                    DataRightsRequestRow.id == deletion_request_id
                 )
             )
 

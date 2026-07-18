@@ -30,6 +30,12 @@ All backend names use the `PARKSHIELD_` prefix.
 | `PARKSHIELD_PRIVACY_POLICY_VERSION` | Yes | No | Public immutable identifier recorded with each optional-consent decision. Update only when the owner-approved policy changes; allowed characters are letters, digits, `.`, `_`, and `-`. |
 | `PARKSHIELD_MUNICIPAL_IMPORTS_ENABLED` | No | No | Enables the MFA-protected municipal import API; default `false`. Keep disabled until source rights, schema mapping, ownership, and staging validation are approved. |
 | `PARKSHIELD_MUNICIPAL_MAX_UPLOAD_BYTES` | No | No | Maximum municipal feed upload, constrained to 1 KiB–10 MiB; default `5242880`. The API reads at most this limit plus one byte and connectors also cap feeds at 5,000 records. |
+| `PARKSHIELD_BILLING_ENABLED` | No | No | Enables server-side store verification; default `false`. Do not enable before store products, native billing, gateway, legal, sandbox, and release gates pass. |
+| `PARKSHIELD_BILLING_SUBJECT_SECRET` | Deployed | Yes | Independent random HMAC key for pseudonymous user, event, and transaction references. Terraform creates it; never reuse JWT or provider tokens. |
+| `PARKSHIELD_BILLING_GATEWAY_URL` | When billing enabled | No | Exact domain-restricted HTTPS verification endpoint without embedded credentials, queries, or fragments. |
+| `PARKSHIELD_BILLING_GATEWAY_TOKEN` | When billing enabled | Yes | Dedicated gateway bearer token stored in Secrets Manager. Raw store evidence is sent only to the configured endpoint. |
+| `PARKSHIELD_APPLE_PREMIUM_PRODUCT_ID` | Apple billing | No | App Store Connect product ID approved for the premium entitlement; public catalog metadata, not a secret. |
+| `PARKSHIELD_GOOGLE_PREMIUM_PRODUCT_ID` | Google billing | No | Google Play product ID approved for the premium entitlement; public catalog metadata, not a secret. |
 
 When `PARKSHIELD_MEDIA_BUCKET` is absent in local/test mode, photos are validated and hashed but raw bytes are discarded. Staging and production reject missing bucket configuration. The AWS SDK uses the ECS task role; do not create application access-key variables. Objects use bucket-default KMS encryption, private/no-store delivery, SHA-256 integrity metadata, short-lived privileged access, rejection deletion, and a maximum 30-day lifecycle.
 
@@ -68,6 +74,10 @@ Terraform values are supplied through a secure out-of-repository `.tfvars` file 
 | `desired_count` | No | ECS task count; default `2`. |
 | `municipal_imports_enabled` | No | Defaults to `false`; enable only after the source-rights and monitored staging-import gates are approved. |
 | `municipal_max_upload_bytes` | No | Feed upload bound propagated to ECS; 1 KiB–10 MiB, default 5 MiB. |
+| `billing_enabled` | No | Defaults to `false`; activation requires the gateway secret ARN and at least one approved store product. |
+| `billing_gateway_url` | No | Exact contracted HTTPS verification endpoint; empty while disabled. |
+| `billing_gateway_token_secret_arn` | ARN only | Existing single-value Secrets Manager secret for the gateway token. |
+| `apple_premium_product_id`, `google_premium_product_id` | No | Owner-created store product IDs; at least one is required when billing is enabled. |
 | `alarm_email` | Personal/operational | Monitored address that confirms the SNS subscription. |
 | `smtp_host`, `smtp_username`, `email_from` | Account metadata | Contracted email provider. |
 | `smtp_password_secret_arn` | ARN only | Existing Secrets Manager secret containing only the SMTP password. |
@@ -81,7 +91,7 @@ Terraform values are supplied through a secure out-of-repository `.tfvars` file 
 | `origin_certificate_arn` | No | Regional ACM certificate ARN covering the origin hostname. |
 | `vpc_cidr` | No | Environment VPC range; default `10.42.0.0/16`; environments must not overlap if peered. |
 
-Terraform generates the RDS password and JWT secret and stores them in Secrets Manager. Terraform state therefore contains sensitive material and must use an encrypted, versioned, access-logged remote backend.
+Terraform generates the RDS password, JWT secret, and independent billing-subject HMAC secret and stores them in Secrets Manager. Terraform state therefore contains sensitive material and must use an encrypted, versioned, access-logged remote backend.
 
 ## GitHub environment variables
 
@@ -125,6 +135,7 @@ And these protected secrets:
 | Local development secrets | Ignored `.env` on the developer machine. |
 | SMTP, push, and tow tokens | One single-value AWS Secrets Manager secret per provider and environment. |
 | RDS password and JWT key | Terraform-managed AWS Secrets Manager secrets. |
+| Billing subject key and verification token | Terraform-managed subject secret; provider token in one owner-created single-value Secrets Manager secret per environment. |
 | AWS deployment authentication | GitHub OIDC role; no static keys. |
 | Terraform state | Dedicated encrypted/versioned S3 backend with DynamoDB locking and restricted operators. |
 | Android/Apple signing material | Protected `mobile-production` GitHub environment and organization-controlled offline recovery custody. |
