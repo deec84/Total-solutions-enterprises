@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/admin/presentation/admin_page.dart';
 import 'package:parkshield_mobile/src/features/alerts/presentation/alerts_page.dart';
 import 'package:parkshield_mobile/src/features/community/presentation/community_report_page.dart';
@@ -75,79 +76,79 @@ class _BootstrapPageState extends State<BootstrapPage> {
       if (isPrivileged) AdminPage(apiBaseUrl: widget.apiBaseUrl),
     ];
     final List<String> titles = <String>[
-      'Map',
-      'Assistant',
-      'Safer parking',
-      'Scan a sign',
-      'Community report',
-      'Alerts',
-      'Tow recovery',
-      'Privacy',
-      'Membership',
-      if (isPrivileged) 'Administration',
+      context.l10n.navMap,
+      context.l10n.navAssistant,
+      context.l10n.navSaferParking,
+      context.l10n.navScanSign,
+      context.l10n.navCommunityReport,
+      context.l10n.navAlerts,
+      context.l10n.navTowRecovery,
+      context.l10n.navPrivacy,
+      context.l10n.navMembership,
+      if (isPrivileged) context.l10n.navAdministration,
     ];
     final List<NavigationDrawerDestination> destinations =
         <NavigationDrawerDestination>[
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.map_outlined),
-        selectedIcon: Icon(Icons.map),
-        label: Text('Map'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.map_outlined),
+        selectedIcon: const Icon(Icons.map),
+        label: Text(context.l10n.navMap),
       ),
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.auto_awesome_outlined),
-        selectedIcon: Icon(Icons.auto_awesome),
-        label: Text('Assistant'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.auto_awesome_outlined),
+        selectedIcon: const Icon(Icons.auto_awesome),
+        label: Text(context.l10n.navAssistant),
       ),
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.local_parking_outlined),
-        selectedIcon: Icon(Icons.local_parking),
-        label: Text('Safer parking nearby'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.local_parking_outlined),
+        selectedIcon: const Icon(Icons.local_parking),
+        label: Text(context.l10n.navSaferParking),
       ),
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.document_scanner_outlined),
-        selectedIcon: Icon(Icons.document_scanner),
-        label: Text('Scan a sign'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.document_scanner_outlined),
+        selectedIcon: const Icon(Icons.document_scanner),
+        label: Text(context.l10n.navScanSign),
       ),
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.campaign_outlined),
-        selectedIcon: Icon(Icons.campaign),
-        label: Text('Community report'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.campaign_outlined),
+        selectedIcon: const Icon(Icons.campaign),
+        label: Text(context.l10n.navCommunityReport),
       ),
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.notifications_active_outlined),
-        selectedIcon: Icon(Icons.notifications_active),
-        label: Text('Alerts'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.notifications_active_outlined),
+        selectedIcon: const Icon(Icons.notifications_active),
+        label: Text(context.l10n.navAlerts),
       ),
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.car_crash_outlined),
-        selectedIcon: Icon(Icons.car_crash),
-        label: Text('Tow recovery'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.car_crash_outlined),
+        selectedIcon: const Icon(Icons.car_crash),
+        label: Text(context.l10n.navTowRecovery),
       ),
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.privacy_tip_outlined),
-        selectedIcon: Icon(Icons.privacy_tip),
-        label: Text('Privacy and data'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.privacy_tip_outlined),
+        selectedIcon: const Icon(Icons.privacy_tip),
+        label: Text(context.l10n.navPrivacy),
       ),
-      const NavigationDrawerDestination(
-        icon: Icon(Icons.workspace_premium_outlined),
-        selectedIcon: Icon(Icons.workspace_premium),
-        label: Text('Membership'),
+      NavigationDrawerDestination(
+        icon: const Icon(Icons.workspace_premium_outlined),
+        selectedIcon: const Icon(Icons.workspace_premium),
+        label: Text(context.l10n.navMembership),
       ),
       if (isPrivileged)
-        const NavigationDrawerDestination(
-          icon: Icon(Icons.admin_panel_settings_outlined),
-          selectedIcon: Icon(Icons.admin_panel_settings),
-          label: Text('Administration'),
+        NavigationDrawerDestination(
+          icon: const Icon(Icons.admin_panel_settings_outlined),
+          selectedIcon: const Icon(Icons.admin_panel_settings),
+          label: Text(context.l10n.navAdministration),
         ),
     ];
     return Scaffold(
       appBar: AppBar(
-        title: Text('ParkShield AI · ${titles[_index]}'),
+        title: Text(context.l10n.appSectionTitle(titles[_index])),
         actions: <Widget>[
           if (widget.onLogout != null)
             IconButton(
               onPressed: widget.onLogout,
-              tooltip: 'Sign out',
+              tooltip: context.l10n.signOut,
               icon: const Icon(Icons.logout),
             ),
         ],

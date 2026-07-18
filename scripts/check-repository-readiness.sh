@@ -22,6 +22,12 @@ mobile/android/gradle/wrapper/gradle-wrapper.jar
 mobile/android/gradle/wrapper/gradle-wrapper.properties
 mobile/android/gradlew
 mobile/android/gradlew.bat
+mobile/android/app/src/main/res/values/strings.xml
+mobile/android/app/src/main/res/values-es/strings.xml
+mobile/ios/Runner/en.lproj/InfoPlist.strings
+mobile/ios/Runner/es.lproj/InfoPlist.strings
+mobile/lib/l10n/app_en.arb
+mobile/lib/l10n/app_es.arb
 mobile/pubspec.lock
 '
 

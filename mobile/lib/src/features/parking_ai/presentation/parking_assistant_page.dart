@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:parkshield_mobile/src/core/localization/domain_labels.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/parking_ai/data/parking_assistant_api.dart';
 import 'package:parkshield_mobile/src/features/parking_ai/domain/parking_assessment.dart';
@@ -22,13 +24,13 @@ class ParkingAssistantPage extends StatefulWidget {
 }
 
 class _ParkingAssistantPageState extends State<ParkingAssistantPage> {
-  final TextEditingController _question =
-      TextEditingController(text: 'Can I park here?');
+  final TextEditingController _question = TextEditingController();
   late final ParkingAssistantApi _api;
   ParkingAssessment? _assessment;
   bool _hasResidentPermit = false;
   bool _loading = false;
   String? _error;
+  bool _questionInitialized = false;
 
   @override
   void initState() {
@@ -48,27 +50,35 @@ class _ParkingAssistantPageState extends State<ParkingAssistantPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_questionInitialized) {
+      _question.text = context.l10n.canIParkHere;
+      _questionInitialized = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
-          Text('Parking Assistant',
+          Text(context.l10n.assistantTitle,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          const Text(
-              'Ask about the current map location. Verified rules always outrank AI.'),
+          Text(context.l10n.assistantIntro),
           const SizedBox(height: 20),
           TextField(
             controller: _question,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Your question',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: context.l10n.yourQuestion,
+              border: const OutlineInputBorder(),
             ),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('I have a valid resident permit'),
+            title: Text(context.l10n.residentPermit),
             value: _hasResidentPermit,
             onChanged: (bool value) =>
                 setState(() => _hasResidentPermit = value),
@@ -76,7 +86,7 @@ class _ParkingAssistantPageState extends State<ParkingAssistantPage> {
           FilledButton.icon(
             onPressed: _loading ? null : _ask,
             icon: const Icon(Icons.auto_awesome),
-            label: const Text('Analyze parking'),
+            label: Text(context.l10n.analyzeParking),
           ),
           if (_loading)
             const Padding(
@@ -112,7 +122,7 @@ class _ParkingAssistantPageState extends State<ParkingAssistantPage> {
       }
     } on Exception {
       if (mounted) {
-        setState(() => _error = 'The assistant is temporarily unavailable.');
+        setState(() => _error = context.l10n.assistantUnavailable);
       }
     } finally {
       if (mounted) {
@@ -135,12 +145,13 @@ class _AssessmentCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Score ${assessment.parkingScore}',
+              Text(context.l10n.scoreValue(assessment.parkingScore),
                   style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(assessment.answer),
-              Text('Understood as: '
-                  '${assessment.interpretedIntent.replaceAll('_', ' ')}'),
+              Text(context.l10n.understoodAs(
+                localizedIntent(context.l10n, assessment.interpretedIntent),
+              )),
               const Divider(height: 28),
               ...assessment.reasons.map(
                 (String reason) => Padding(
@@ -148,14 +159,17 @@ class _AssessmentCard extends StatelessWidget {
                   child: Text('• $reason'),
                 ),
               ),
-              Text('Source: ${assessment.provenance}'),
-              Text('Confidence: ${(assessment.confidence * 100).round()}%'),
+              Text(context.l10n.sourceWithValue(
+                localizedProvenance(context.l10n, assessment.provenance),
+              )),
+              Text(context.l10n
+                  .confidencePercent((assessment.confidence * 100).round())),
               if (assessment.requiresHumanReview)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    'Low confidence: review current signs or request human verification.',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    context.l10n.lowConfidenceReview,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               const SizedBox(height: 12),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/admin/data/admin_api.dart';
 import 'package:parkshield_mobile/src/features/admin/domain/admin_models.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
@@ -41,36 +42,36 @@ class _AdminPageState extends State<AdminPage> {
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
-          Text('Administration',
+          Text(context.l10n.adminTitle,
               style: Theme.of(context).textTheme.headlineSmall),
-          const Text('Privileged actions require a fresh authenticator code.'),
+          Text(context.l10n.adminMfaNotice),
           const SizedBox(height: 16),
           TextField(
             controller: _mfaCode,
             keyboardType: TextInputType.number,
             maxLength: 6,
             obscureText: true,
-            decoration: const InputDecoration(labelText: '6-digit MFA code'),
+            decoration:
+                InputDecoration(labelText: context.l10n.mfaCodeSixDigit),
           ),
           Wrap(
             spacing: 12,
             children: <Widget>[
               OutlinedButton(
                   onPressed: _loading ? null : _setupMfa,
-                  child: const Text('Enroll MFA')),
+                  child: Text(context.l10n.enrollMfa)),
               FilledButton(
                   onPressed: _loading ? null : _load,
-                  child: const Text('Open dashboard')),
+                  child: Text(context.l10n.openDashboard)),
             ],
           ),
           if (_setup case final MfaSetup setup) ...<Widget>[
             const SizedBox(height: 16),
-            const Text(
-                'Add this secret to your authenticator, then enter its code:'),
+            Text(context.l10n.mfaSetupHelp),
             SelectableText(setup.secret),
             TextButton(
                 onPressed: _loading ? null : _confirmMfa,
-                child: const Text('Confirm MFA')),
+                child: Text(context.l10n.confirmMfa)),
           ],
           if (_message case final String message)
             Padding(
@@ -81,11 +82,19 @@ class _AdminPageState extends State<AdminPage> {
               spacing: 12,
               runSpacing: 12,
               children: <Widget>[
-                _Metric(label: 'Users', value: overview.users),
-                _Metric(label: 'Sessions', value: overview.activeSessions),
-                _Metric(label: 'Pending', value: overview.pendingReports),
-                _Metric(label: 'Published', value: overview.publishedReports),
-                _Metric(label: 'Rejected', value: overview.rejectedReports),
+                _Metric(label: context.l10n.metricUsers, value: overview.users),
+                _Metric(
+                    label: context.l10n.metricSessions,
+                    value: overview.activeSessions),
+                _Metric(
+                    label: context.l10n.metricPending,
+                    value: overview.pendingReports),
+                _Metric(
+                    label: context.l10n.metricPublished,
+                    value: overview.publishedReports),
+                _Metric(
+                    label: context.l10n.metricRejected,
+                    value: overview.rejectedReports),
               ],
             ),
             const SizedBox(height: 24),
@@ -96,25 +105,30 @@ class _AdminPageState extends State<AdminPage> {
                 ),
                 title: Text(
                   integrity.valid
-                      ? 'Audit chain verified'
-                      : 'Audit integrity failure',
+                      ? context.l10n.auditVerified
+                      : context.l10n.auditFailure,
                 ),
-                subtitle: Text('${integrity.recordsChecked} records checked'),
+                subtitle:
+                    Text(context.l10n.recordsChecked(integrity.recordsChecked)),
               ),
-            Text('Moderation queue',
+            Text(context.l10n.moderationQueue,
                 style: Theme.of(context).textTheme.titleLarge),
             ..._reports.map(
               (ModerationReport report) => Card(
                 child: ListTile(
                   title: Text(report.category),
-                  subtitle: Text(
-                      '${report.description}\nEvidence ${(report.validationScore * 100).round()}%'),
+                  subtitle: Text(context.l10n.evidencePercent(
+                    report.description,
+                    (report.validationScore * 100).round(),
+                  )),
                   isThreeLine: true,
                   trailing: PopupMenuButton<bool>(
                     onSelected: (bool approved) => _moderate(report, approved),
-                    itemBuilder: (_) => const <PopupMenuEntry<bool>>[
-                      PopupMenuItem(value: true, child: Text('Approve')),
-                      PopupMenuItem(value: false, child: Text('Reject')),
+                    itemBuilder: (_) => <PopupMenuEntry<bool>>[
+                      PopupMenuItem(
+                          value: true, child: Text(context.l10n.approve)),
+                      PopupMenuItem(
+                          value: false, child: Text(context.l10n.reject)),
                     ],
                   ),
                 ),
@@ -131,7 +145,7 @@ class _AdminPageState extends State<AdminPage> {
 
   Future<void> _confirmMfa() async => _run(() async {
         await _api.confirmMfa(_mfaCode.text.trim());
-        if (mounted) setState(() => _message = 'MFA enabled.');
+        if (mounted) setState(() => _message = context.l10n.mfaEnabled);
       });
 
   Future<void> _load() async => _run(() async {
@@ -180,8 +194,7 @@ class _AdminPageState extends State<AdminPage> {
       await action();
     } on Exception {
       if (mounted) {
-        setState(() =>
-            _message = 'Administrative request failed. Verify role and MFA.');
+        setState(() => _message = context.l10n.adminRequestError);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -210,19 +223,21 @@ class _ModerationReasonDialogState extends State<_ModerationReasonDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.approved ? 'Approve report' : 'Reject report'),
+        title: Text(widget.approved
+            ? context.l10n.approveReport
+            : context.l10n.rejectReport),
         content: TextField(
           controller: _controller,
-          decoration: const InputDecoration(labelText: 'Reason'),
+          decoration: InputDecoration(labelText: context.l10n.reason),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, _controller.text),
-            child: const Text('Confirm'),
+            child: Text(context.l10n.confirm),
           ),
         ],
       );
@@ -234,5 +249,6 @@ class _Metric extends StatelessWidget {
   final int value;
 
   @override
-  Widget build(BuildContext context) => Chip(label: Text('$label: $value'));
+  Widget build(BuildContext context) =>
+      Chip(label: Text(context.l10n.metricValue(label, value)));
 }

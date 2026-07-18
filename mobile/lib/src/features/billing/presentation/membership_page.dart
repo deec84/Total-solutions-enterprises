@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:parkshield_mobile/l10n/generated/app_localizations.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/billing/data/billing_api.dart';
 import 'package:parkshield_mobile/src/features/billing/domain/billing_models.dart';
@@ -21,6 +24,8 @@ class MembershipPage extends StatefulWidget {
 
 class _MembershipPageState extends State<MembershipPage> {
   late final BillingGateway _gateway;
+  late AppLocalizations _l10n;
+  bool _initialized = false;
   BillingConfiguration? _configuration;
   EntitlementStatus? _entitlement;
   bool _loading = true;
@@ -34,7 +39,16 @@ class _MembershipPageState extends State<MembershipPage> {
           baseUrl: widget.apiBaseUrl,
           tokenStore: SecureTokenStore(),
         );
-    _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _l10n = context.l10n;
+    if (!_initialized) {
+      _initialized = true;
+      _load();
+    }
   }
 
   @override
@@ -50,12 +64,10 @@ class _MembershipPageState extends State<MembershipPage> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: <Widget>[
-        Text('Membership', style: Theme.of(context).textTheme.headlineSmall),
+        Text(context.l10n.membershipTitle,
+            style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
-        const Text(
-          'Store purchases are credited only after server verification. ParkShield never '
-          'accepts a client-declared purchase result or displays an invented price.',
-        ),
+        Text(context.l10n.membershipVerificationNotice),
         const SizedBox(height: 20),
         Card(
           child: ListTile(
@@ -63,26 +75,19 @@ class _MembershipPageState extends State<MembershipPage> {
                 ? Icons.workspace_premium
                 : Icons.shield_outlined),
             title: Text(entitlement?.premium == true
-                ? 'ParkShield Premium'
-                : 'ParkShield Free'),
-            subtitle: Text(_statusText(entitlement)),
+                ? context.l10n.membershipPremium
+                : context.l10n.membershipFree),
+            subtitle: Text(_statusText(context.l10n, entitlement)),
           ),
         ),
         const SizedBox(height: 16),
         if (configuration != null && !configuration.enabled)
-          const Text(
-            'Purchases are not available in this build. No charge can be initiated.',
-          ),
+          Text(context.l10n.purchasesDisabled),
         if (configuration?.enabled == true && !widget.storeBridge.available)
-          const Text(
-            'The server catalog is prepared, but this build is not connected to App Store '
-            'or Google Play billing. No charge can be initiated.',
-          ),
+          Text(context.l10n.storeBridgeDisabled),
         if (configuration?.enabled == true &&
             widget.storeBridge.available) ...<Widget>[
-          const Text(
-            'Your device store presents the localized price and terms before confirmation.',
-          ),
+          Text(context.l10n.storePresentsTerms),
           const SizedBox(height: 12),
           ...configuration!.products.map(
             (BillingProduct product) => Padding(
@@ -90,26 +95,25 @@ class _MembershipPageState extends State<MembershipPage> {
               child: FilledButton.icon(
                 onPressed: _loading ? null : () => _purchase(product),
                 icon: const Icon(Icons.workspace_premium_outlined),
-                label: Text('Continue in ${product.platform.label}'),
+                label: Text(context.l10n.continueInStore(
+                  _storeName(product.platform),
+                )),
               ),
             ),
           ),
           OutlinedButton.icon(
             onPressed: _loading ? null : _restore,
             icon: const Icon(Icons.restore),
-            label: const Text('Restore store purchases'),
+            label: Text(context.l10n.restorePurchases),
           ),
         ],
         const SizedBox(height: 16),
         TextButton.icon(
           onPressed: _loading ? null : _load,
           icon: const Icon(Icons.refresh),
-          label: const Text('Refresh membership status'),
+          label: Text(context.l10n.refreshMembership),
         ),
-        const Text(
-          'Deleting a ParkShield account does not cancel a subscription managed by Apple or '
-          'Google. Cancel it in the same store account used to subscribe.',
-        ),
+        Text(context.l10n.subscriptionDeletionNotice),
         if (_loading)
           const Padding(
             padding: EdgeInsets.all(16),
@@ -124,14 +128,30 @@ class _MembershipPageState extends State<MembershipPage> {
     );
   }
 
-  String _statusText(EntitlementStatus? value) {
-    if (value == null) return 'Status unavailable';
-    final String store = value.platform?.label ?? 'No store subscription';
-    final String expiry = value.expiresAt == null
-        ? ''
-        : ' · through ${value.expiresAt!.toLocal().toIso8601String().split('T').first}';
-    return '$store · ${value.status.replaceAll('_', ' ')}$expiry';
+  String _statusText(AppLocalizations l10n, EntitlementStatus? value) {
+    if (value == null) return l10n.statusUnavailable;
+    final String store = value.platform == null
+        ? l10n.noStoreSubscription
+        : _storeName(value.platform!);
+    final String status = switch (value.status) {
+      'free' => l10n.membershipStatusFree,
+      'active' => l10n.membershipStatusActive,
+      'grace_period' => l10n.membershipStatusGracePeriod,
+      'paused' => l10n.membershipStatusPaused,
+      'expired' => l10n.membershipStatusExpired,
+      'revoked' => l10n.membershipStatusRevoked,
+      _ => value.status.replaceAll('_', ' '),
+    };
+    if (value.expiresAt == null) return l10n.membershipStatus(store, status);
+    final String date =
+        DateFormat.yMd(l10n.localeName).format(value.expiresAt!.toLocal());
+    return l10n.membershipStatusThrough(store, status, date);
   }
+
+  String _storeName(StorePlatform platform) => switch (platform) {
+        StorePlatform.appleAppStore => 'App Store',
+        StorePlatform.googlePlay => 'Google Play',
+      };
 
   Future<void> _load() async {
     setState(() {
@@ -146,7 +166,7 @@ class _MembershipPageState extends State<MembershipPage> {
       _configuration = result.$1;
       _entitlement = result.$2;
     } on Exception {
-      _message = 'Membership status could not be loaded.';
+      _message = _l10n.membershipLoadError;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -161,14 +181,13 @@ class _MembershipPageState extends State<MembershipPage> {
       final StorePurchaseEvidence? evidence =
           await widget.storeBridge.purchase(product);
       if (evidence == null) {
-        _message = 'The store purchase was not completed.';
+        _message = _l10n.purchaseNotCompleted;
       } else {
         _entitlement = await _gateway.verify(evidence);
-        _message = 'Membership verified by the store.';
+        _message = _l10n.membershipVerified;
       }
     } on Exception {
-      _message =
-          'The store purchase could not be verified. No access was granted.';
+      _message = _l10n.purchaseVerificationError;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -186,10 +205,10 @@ class _MembershipPageState extends State<MembershipPage> {
         _entitlement = await _gateway.verify(item);
       }
       _message = evidence.isEmpty
-          ? 'No store purchase was available to restore.'
-          : 'Store purchases were restored and verified.';
+          ? _l10n.noPurchaseToRestore
+          : _l10n.purchasesRestored;
     } on Exception {
-      _message = 'Store purchases could not be restored.';
+      _message = _l10n.restorePurchasesError;
     } finally {
       if (mounted) setState(() => _loading = false);
     }

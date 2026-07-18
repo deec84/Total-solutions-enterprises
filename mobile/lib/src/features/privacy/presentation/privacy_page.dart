@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:parkshield_mobile/l10n/generated/app_localizations.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/privacy/data/privacy_api.dart';
 import 'package:parkshield_mobile/src/features/privacy/domain/privacy_models.dart';
@@ -24,6 +26,8 @@ class PrivacyPage extends StatefulWidget {
 
 class _PrivacyPageState extends State<PrivacyPage> {
   late final PrivacyGateway _gateway;
+  late AppLocalizations _l10n;
+  bool _initialized = false;
   final TextEditingController _password = TextEditingController();
   final TextEditingController _mfaCode = TextEditingController();
   final Map<ConsentPurpose, bool> _consents = <ConsentPurpose, bool>{};
@@ -39,7 +43,16 @@ class _PrivacyPageState extends State<PrivacyPage> {
           baseUrl: widget.apiBaseUrl,
           tokenStore: SecureTokenStore(),
         );
-    _loadConsents();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _l10n = context.l10n;
+    if (!_initialized) {
+      _initialized = true;
+      _loadConsents();
+    }
   }
 
   @override
@@ -54,19 +67,16 @@ class _PrivacyPageState extends State<PrivacyPage> {
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
-          Text('Privacy and your data',
+          Text(context.l10n.privacyTitle,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          const Text(
-            'Optional uses are off until you enable them. Essential security and parking '
-            'requests are processed to provide the service.',
-          ),
+          Text(context.l10n.privacyIntro),
           const SizedBox(height: 16),
           ...ConsentPurpose.values.map(
             (ConsentPurpose purpose) => SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(purpose.label),
-              subtitle: Text(_purposeDescription(purpose)),
+              title: Text(_purposeLabel(context.l10n, purpose)),
+              subtitle: Text(_purposeDescription(context.l10n, purpose)),
               value: _consents[purpose] ?? false,
               onChanged: _loading
                   ? null
@@ -74,25 +84,24 @@ class _PrivacyPageState extends State<PrivacyPage> {
             ),
           ),
           const Divider(height: 32),
-          Text('Export your data',
+          Text(context.l10n.exportDataTitle,
               style: Theme.of(context).textTheme.titleLarge),
-          const Text(
-              'Creates a current JSON copy without passwords, MFA secrets, push tokens, or storage keys.'),
+          Text(context.l10n.exportDataDescription),
           const SizedBox(height: 12),
           FilledButton.tonalIcon(
             onPressed: _loading ? null : _export,
             icon: const Icon(Icons.download_outlined),
-            label: const Text('Create data export'),
+            label: Text(context.l10n.createDataExport),
           ),
           if (_exportJson case final String value) ...<Widget>[
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () => _copyExport(value),
               icon: const Icon(Icons.copy_outlined),
-              label: const Text('Copy export JSON'),
+              label: Text(context.l10n.copyExportJson),
             ),
             Semantics(
-              label: 'Generated account data export',
+              label: context.l10n.generatedDataExport,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 220),
                 child: SingleChildScrollView(child: SelectableText(value)),
@@ -100,25 +109,20 @@ class _PrivacyPageState extends State<PrivacyPage> {
             ),
           ],
           const Divider(height: 32),
-          Text('Delete account',
+          Text(context.l10n.deleteAccountTitle,
               style: Theme.of(context)
                   .textTheme
                   .titleLarge
                   ?.copyWith(color: Theme.of(context).colorScheme.error)),
-          const Text(
-            'This permanently removes the account, sessions, preferences, reports, appeals, '
-            'and retained community evidence. It does not cancel an Apple or Google '
-            'subscription; cancel that in the store. Pseudonymous billing evidence may be '
-            'retained for reconciliation and legal obligations. This cannot be undone.',
-          ),
+          Text(context.l10n.deleteAccountDescription),
           const SizedBox(height: 12),
           TextField(
             controller: _password,
             obscureText: true,
             autofillHints: const <String>[AutofillHints.password],
-            decoration: const InputDecoration(
-              labelText: 'Current password',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: context.l10n.currentPassword,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
@@ -126,15 +130,15 @@ class _PrivacyPageState extends State<PrivacyPage> {
             controller: _mfaCode,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            decoration: const InputDecoration(
-              labelText: 'MFA code (if enabled)',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: context.l10n.mfaCodeOptional,
+              border: const OutlineInputBorder(),
             ),
           ),
           OutlinedButton.icon(
             onPressed: _loading ? null : _confirmDeletion,
             icon: const Icon(Icons.delete_forever_outlined),
-            label: const Text('Permanently delete account'),
+            label: Text(context.l10n.permanentlyDeleteAccount),
           ),
           if (_loading)
             const Padding(
@@ -156,7 +160,7 @@ class _PrivacyPageState extends State<PrivacyPage> {
         _consents[item.purpose] = item.granted;
       }
     } on Exception {
-      _message = 'Privacy choices could not be loaded.';
+      _message = _l10n.privacyLoadError;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -171,9 +175,11 @@ class _PrivacyPageState extends State<PrivacyPage> {
       final PrivacyConsent decision =
           await _gateway.setConsent(purpose, granted);
       _consents[purpose] = decision.granted;
-      _message = '${purpose.label} preference saved.';
+      _message = _l10n.preferenceSaved(
+        _purposeLabel(_l10n, purpose),
+      );
     } on Exception {
-      _message = 'The privacy choice could not be saved.';
+      _message = _l10n.privacySaveError;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -192,9 +198,9 @@ class _PrivacyPageState extends State<PrivacyPage> {
         'policy_version': export.policyVersion,
         'data': export.data,
       });
-      _message = 'Your data export is ready.';
+      _message = _l10n.dataExportReady;
     } on Exception {
-      _message = 'Your data export could not be created.';
+      _message = _l10n.dataExportError;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -202,28 +208,27 @@ class _PrivacyPageState extends State<PrivacyPage> {
 
   Future<void> _copyExport(String value) async {
     await Clipboard.setData(ClipboardData(text: value));
-    if (mounted) setState(() => _message = 'Data export copied.');
+    if (mounted) setState(() => _message = _l10n.dataExportCopied);
   }
 
   Future<void> _confirmDeletion() async {
     if (_password.text.isEmpty) {
-      setState(() => _message = 'Enter your current password first.');
+      setState(() => _message = context.l10n.enterCurrentPassword);
       return;
     }
     final bool confirmed = await showDialog<bool>(
           context: context,
           builder: (BuildContext context) => AlertDialog(
-            title: const Text('Delete your ParkShield account?'),
-            content: const Text(
-                'Your account and owned data will be permanently deleted.'),
+            title: Text(context.l10n.deleteAccountQuestion),
+            content: Text(context.l10n.deleteAccountConfirmation),
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Delete permanently'),
+                child: Text(context.l10n.deletePermanently),
               ),
             ],
           ),
@@ -243,19 +248,27 @@ class _PrivacyPageState extends State<PrivacyPage> {
       _mfaCode.clear();
       widget.onAccountDeleted?.call();
     } on Exception {
-      _message =
-          'The account was not deleted. Verify your password, MFA code, and connection.';
+      _message = _l10n.deleteAccountError;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  String _purposeDescription(ConsentPurpose purpose) => switch (purpose) {
-        ConsentPurpose.productAnalytics =>
-          'Share de-identified product usage to improve reliability.',
+  String _purposeLabel(AppLocalizations l10n, ConsentPurpose purpose) =>
+      switch (purpose) {
+        ConsentPurpose.productAnalytics => l10n.consentProductAnalytics,
         ConsentPurpose.personalizedRecommendations =>
-          'Use your prior choices to rank safer parking alternatives.',
+          l10n.consentPersonalizedRecommendations,
+        ConsentPurpose.communityResearch => l10n.consentCommunityResearch,
+      };
+
+  String _purposeDescription(AppLocalizations l10n, ConsentPurpose purpose) =>
+      switch (purpose) {
+        ConsentPurpose.productAnalytics =>
+          l10n.consentProductAnalyticsDescription,
+        ConsentPurpose.personalizedRecommendations =>
+          l10n.consentPersonalizedRecommendationsDescription,
         ConsentPurpose.communityResearch =>
-          'Include de-identified reports in parking-safety research.',
+          l10n.consentCommunityResearchDescription,
       };
 }

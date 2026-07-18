@@ -1,0 +1,5 @@
+"CFBundleDisplayName" = "ParkShield AI";
+"NSCameraUsageDescription" = "ParkShield uses the camera only when you choose to scan a parking sign.";
+"NSPhotoLibraryUsageDescription" = "ParkShield accesses a selected photo only to interpret a parking sign.";
+"NSLocationWhenInUseUsageDescription" = "ParkShield uses your location to assess parking risk at the place you choose to stop.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "When you explicitly enable preventive alerts, ParkShield checks parking risk in the background and warns you before parking.";

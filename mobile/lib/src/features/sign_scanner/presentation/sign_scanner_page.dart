@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/sign_scanner/data/sign_scanner_api.dart';
 import 'package:parkshield_mobile/src/features/sign_scanner/domain/sign_scan_result.dart';
@@ -49,11 +50,10 @@ class _SignScannerPageState extends State<SignScannerPage> {
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
-          Text('Parking Sign Scanner',
+          Text(context.l10n.scannerTitle,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          const Text(
-              'The selected image is analyzed in memory and is not retained by default.'),
+          Text(context.l10n.scannerIntro),
           const SizedBox(height: 20),
           Row(
             children: <Widget>[
@@ -61,7 +61,7 @@ class _SignScannerPageState extends State<SignScannerPage> {
                 child: FilledButton.icon(
                   onPressed: _loading ? null : () => _pick(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt_outlined),
-                  label: const Text('Camera'),
+                  label: Text(context.l10n.camera),
                 ),
               ),
               const SizedBox(width: 12),
@@ -69,7 +69,7 @@ class _SignScannerPageState extends State<SignScannerPage> {
                 child: OutlinedButton.icon(
                   onPressed: _loading ? null : () => _pick(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text('Gallery'),
+                  label: Text(context.l10n.gallery),
                 ),
               ),
             ],
@@ -107,8 +107,7 @@ class _SignScannerPageState extends State<SignScannerPage> {
       await _scan(file);
     } on Exception {
       if (mounted) {
-        setState(() =>
-            _error = 'The sign could not be analyzed. Try a clearer photo.');
+        setState(() => _error = context.l10n.scanPhotoError);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -125,7 +124,7 @@ class _SignScannerPageState extends State<SignScannerPage> {
       await _scan(response.files!.first);
     } on Exception {
       if (mounted) {
-        setState(() => _error = 'The recovered photo could not be analyzed.');
+        setState(() => _error = context.l10n.recoveredPhotoError);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -163,7 +162,7 @@ class _ScanResultCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Towing risk ${result.towingRiskScore}/100',
+                context.l10n.towingRisk(result.towingRiskScore),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
@@ -173,12 +172,13 @@ class _ScanResultCard extends StatelessWidget {
                 ...result.restrictions.map((String item) => Text('• $item')),
               ],
               const Divider(height: 28),
-              Text('Detected text: ${result.detectedText}'),
-              Text('Confidence: ${(result.confidence * 100).round()}%'),
+              Text(context.l10n.detectedText(result.detectedText)),
+              Text(context.l10n
+                  .confidencePercent((result.confidence * 100).round())),
               if (result.requiresHumanReview)
-                const Text(
-                  'Low confidence: read the physical sign or request human review.',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  context.l10n.scanLowConfidence,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               const SizedBox(height: 12),
               Text(result.disclaimer,

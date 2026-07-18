@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:parkshield_mobile/src/core/localization/domain_labels.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/recommendations/data/parking_recommendations_api.dart';
 import 'package:parkshield_mobile/src/features/recommendations/domain/parking_recommendation.dart';
@@ -53,25 +56,25 @@ class _ParkingRecommendationsPageState
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
-          Text('Safer parking nearby',
+          Text(context.l10n.recommendationsTitle,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          const Text(
-            'Options balance walking distance, price, safety, towing history, '
-            'ratings, and current availability.',
-          ),
+          Text(context.l10n.recommendationsIntro),
           const SizedBox(height: 20),
           DropdownButtonFormField<int>(
             initialValue: _radiusMeters,
-            decoration: const InputDecoration(
-              labelText: 'Maximum walking distance',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: context.l10n.maximumWalkingDistance,
+              border: const OutlineInputBorder(),
             ),
-            items: const <DropdownMenuItem<int>>[
-              DropdownMenuItem(value: 500, child: Text('500 meters')),
-              DropdownMenuItem(value: 1000, child: Text('1 kilometer')),
-              DropdownMenuItem(value: 1500, child: Text('1.5 kilometers')),
-              DropdownMenuItem(value: 3000, child: Text('3 kilometers')),
+            items: <DropdownMenuItem<int>>[
+              DropdownMenuItem(value: 500, child: Text(context.l10n.meters500)),
+              DropdownMenuItem(
+                  value: 1000, child: Text(context.l10n.kilometer1)),
+              DropdownMenuItem(
+                  value: 1500, child: Text(context.l10n.kilometers15)),
+              DropdownMenuItem(
+                  value: 3000, child: Text(context.l10n.kilometers3)),
             ],
             onChanged: (int? value) {
               if (value != null) setState(() => _radiusMeters = value);
@@ -81,17 +84,17 @@ class _ParkingRecommendationsPageState
           TextField(
             controller: _maxPrice,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Maximum hourly price (optional)',
+            decoration: InputDecoration(
+              labelText: context.l10n.maximumHourlyPrice,
               prefixText: '\$ ',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: _loading ? null : _search,
             icon: const Icon(Icons.local_parking_outlined),
-            label: const Text('Find safer parking'),
+            label: Text(context.l10n.findSaferParking),
           ),
           if (_loading)
             const Padding(
@@ -106,9 +109,9 @@ class _ParkingRecommendationsPageState
             ),
           if (_result case final ParkingRecommendationList result) ...<Widget>[
             if (result.options.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 20),
-                child: Text('No verified options match these filters.'),
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Text(context.l10n.noVerifiedOptions),
               ),
             ...result.options.map(
               (ParkingRecommendation option) =>
@@ -128,7 +131,7 @@ class _ParkingRecommendationsPageState
     final double? dollars =
         priceText.isEmpty ? null : double.tryParse(priceText);
     if (priceText.isNotEmpty && (dollars == null || dollars < 0)) {
-      setState(() => _error = 'Enter a valid maximum hourly price.');
+      setState(() => _error = context.l10n.invalidHourlyPrice);
       return;
     }
     setState(() {
@@ -145,8 +148,7 @@ class _ParkingRecommendationsPageState
       if (mounted) setState(() => _result = result);
     } on Exception {
       if (mounted) {
-        setState(() =>
-            _error = 'Parking recommendations are temporarily unavailable.');
+        setState(() => _error = context.l10n.recommendationsUnavailable);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -173,18 +175,27 @@ class _RecommendationCard extends StatelessWidget {
                     child: Text(option.name,
                         style: Theme.of(context).textTheme.titleMedium),
                   ),
-                  Chip(label: Text('Match ${option.rankingScore}')),
+                  Chip(
+                      label:
+                          Text(context.l10n.matchScore(option.rankingScore))),
                 ],
               ),
               Text(option.address),
               const SizedBox(height: 8),
-              Text('${option.walkingDistanceMeters} m walk · '
-                  'Safety ${option.safetyScore}/100'),
+              Text(context.l10n.walkSafety(
+                option.walkingDistanceMeters,
+                option.safetyScore,
+              )),
               Text(option.hourlyPriceCents == null
-                  ? 'Price not verified'
-                  : '\$${(option.hourlyPriceCents! / 100).toStringAsFixed(2)}/hour'),
+                  ? context.l10n.priceNotVerified
+                  : context.l10n.pricePerHour(
+                      NumberFormat.simpleCurrency(
+                        locale: context.l10n.localeName,
+                        name: 'USD',
+                      ).format(option.hourlyPriceCents! / 100),
+                    )),
               if (option.availableSpaces != null)
-                Text('${option.availableSpaces} spaces reported available'),
+                Text(context.l10n.spacesAvailable(option.availableSpaces!)),
               ...option.reasons.map(
                 (String reason) => Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -192,8 +203,10 @@ class _RecommendationCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text('Source: ${option.provenance} · '
-                  '${(option.confidence * 100).round()}% confidence'),
+              Text(context.l10n.sourceConfidence(
+                localizedProvenance(context.l10n, option.provenance),
+                (option.confidence * 100).round(),
+              )),
               const SizedBox(height: 8),
               FilledButton.tonalIcon(
                 onPressed: () => launchUrl(
@@ -201,7 +214,7 @@ class _RecommendationCard extends StatelessWidget {
                   mode: LaunchMode.externalApplication,
                 ),
                 icon: const Icon(Icons.navigation_outlined),
-                label: const Text('Navigate'),
+                label: Text(context.l10n.navigate),
               ),
             ],
           ),

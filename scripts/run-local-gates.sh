@@ -56,6 +56,7 @@ export PATH="$TOOLCHAINS/bin:$TOOLCHAINS/flutter/bin:$PATH"
 
 printf '\nRepository onboarding and secret-exclusion gate\n'
 "$REPOSITORY_ROOT/scripts/check-repository-readiness.sh"
+"$PYTHON" "$REPOSITORY_ROOT/scripts/check-mobile-localizations.py"
 
 printf '\nBackend static, security, authentication, and coverage gates\n'
 cd "$REPOSITORY_ROOT/backend"
@@ -74,6 +75,8 @@ cd "$REPOSITORY_ROOT/backend"
 printf '\nFlutter analysis, rendering tests, coverage, and Android build\n'
 cd "$REPOSITORY_ROOT/mobile"
 "$FLUTTER" pub get
+"$FLUTTER" gen-l10n
+git diff --exit-code -- lib/l10n/generated
 "$DART" format --output=none --set-exit-if-changed lib test
 "$FLUTTER" analyze --fatal-infos
 "$FLUTTER" test --coverage
