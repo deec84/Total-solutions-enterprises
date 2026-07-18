@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Literal, Self
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     push_provider_token: str | None = None
     tow_provider_url: str | None = None
     tow_provider_token: str | None = None
+    media_bucket: str | None = None
+    media_retention_days: int = Field(default=30, ge=1, le=30)
 
     @model_validator(mode="after")
     def validate_deployed_environment(self) -> Self:
@@ -58,6 +60,8 @@ class Settings(BaseSettings):
             errors.append("tow lookup provider credentials are required")
         elif tow_url is not None and not tow_url.startswith("https://"):
             errors.append("tow lookup provider URL must use HTTPS")
+        if not self.media_bucket or not self.media_bucket.strip():
+            errors.append("media_bucket is required for governed community evidence")
         if errors:
             raise ValueError("; ".join(errors))
         return self

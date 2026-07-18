@@ -13,7 +13,7 @@
 - Thirty-day report expiry and provenance metadata.
 - Flutter report form using the current map center, secure access token, optional camera evidence, and clear review state.
 
-Raw community photos are transient in this phase: the database stores only their evidence hash. Durable media retention must use an approved encrypted object-store adapter with deletion policy; retaining ungoverned user media is intentionally prohibited.
+Phase 7 defaults to privacy-preserving hash-only evidence when object storage is disabled locally. Phase 14 adds the approved governed path for deployed environments: raw bytes never enter PostgreSQL, private object identifiers never enter public responses, and encrypted evidence is bounded by deletion and access policy.
 
 ## Verification
 

@@ -84,8 +84,33 @@ class InMemoryCommunityReportRepository:
         appeal = self._appeals.get(appeal_id)
         if appeal is None:
             return None
-        updated = replace(
-            appeal, status=status, resolution_reason=reason, resolved_at=resolved_at
-        )
+        updated = replace(appeal, status=status, resolution_reason=reason, resolved_at=resolved_at)
         self._appeals[appeal_id] = updated
+        return updated
+
+    async def expired_media(
+        self, retained_before: datetime, limit: int
+    ) -> tuple[CommunityReport, ...]:
+        reports = (
+            report
+            for report in self._reports.values()
+            if report.photo_available
+            and report.photo_retained_until is not None
+            and report.photo_retained_until <= retained_before
+        )
+        return tuple(
+            sorted(
+                reports,
+                key=lambda report: report.photo_retained_until or retained_before,
+            )[:limit]
+        )
+
+    async def mark_photo_deleted(
+        self, report_id: UUID, deleted_at: datetime
+    ) -> CommunityReport | None:
+        report = self._reports.get(report_id)
+        if report is None:
+            return None
+        updated = replace(report, photo_deleted_at=deleted_at)
+        self._reports[report_id] = updated
         return updated

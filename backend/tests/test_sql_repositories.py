@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.models import SessionRow, UserRow
+from app.infrastructure.models import CommunityReportRow, SessionRow, UserRow
 from app.modules.community.domain import (
     AppealStatus,
     CommunityReport,
@@ -162,5 +162,46 @@ def test_sql_community_repository_flushes_rows_before_followup_updates() -> None
 
         assert db.add.call_count == 2
         assert db.flush.await_count == 2
+
+    asyncio.run(scenario())
+
+
+def test_sql_community_repository_maps_media_retention_and_deletion() -> None:
+    async def scenario() -> None:
+        db = session_mock()
+        repository = SqlCommunityReportRepository(db)
+        now = datetime.now(UTC)
+        row = CommunityReportRow(
+            id=uuid4(),
+            reporter_id=uuid4(),
+            category=ReportCategory.SIGN,
+            latitude=25.7617,
+            longitude=-80.1918,
+            description="The complete parking sign is visible in this evidence",
+            status=ReportStatus.PENDING,
+            validation_score=0.75,
+            fingerprint="f" * 64,
+            photo_sha256="a" * 64,
+            photo_object_key=f"community-reports/{uuid4()}/{'a' * 64}",
+            photo_content_type="image/png",
+            photo_size_bytes=4096,
+            photo_retained_until=now - timedelta(minutes=1),
+            photo_deleted_at=None,
+            moderation_reason=None,
+            created_at=now - timedelta(days=1),
+            expires_at=now + timedelta(days=29),
+        )
+        db.scalars.return_value = [row]
+
+        expired = await repository.expired_media(now, 10)
+
+        assert expired[0].photo_available
+        assert expired[0].photo_object_key == row.photo_object_key
+        deleted_at = datetime.now(UTC)
+        row.photo_deleted_at = deleted_at
+        db.get.return_value = row
+        deleted = await repository.mark_photo_deleted(row.id, deleted_at)
+        assert deleted is not None and not deleted.photo_available
+        assert deleted.photo_deleted_at == deleted_at
 
     asyncio.run(scenario())

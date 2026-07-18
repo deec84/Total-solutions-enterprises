@@ -48,6 +48,20 @@ class ReportResponse(BaseModel):
     status: ReportStatus
     validation_score: float
     photo_sha256: str | None
+    photo_available: bool
+    photo_retained_until: datetime | None
+    photo_deleted_at: datetime | None
     created_at: datetime
     expires_at: datetime
     moderation_reason: str | None
+
+
+class MediaPurgeResponse(BaseModel):
+    scanned: int
+    deleted: int
+    failed: int
+
+
+class MediaAccessResponse(BaseModel):
+    url: str
+    expires_at: datetime

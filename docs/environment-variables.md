@@ -25,8 +25,10 @@ All backend names use the `PARKSHIELD_` prefix.
 | `PARKSHIELD_PUSH_PROVIDER_TOKEN` | Deployed | Yes | Bearer token for the push gateway; AWS Secrets Manager. |
 | `PARKSHIELD_TOW_PROVIDER_URL` | Deployed | No | HTTPS endpoint for the contracted tow lookup gateway. |
 | `PARKSHIELD_TOW_PROVIDER_TOKEN` | Deployed | Yes | Bearer token for the tow gateway; AWS Secrets Manager. |
+| `PARKSHIELD_MEDIA_BUCKET` | Deployed | No | Private object-store bucket for governed community evidence. ECS receives the Terraform-created bucket name; no static AWS credential is used. |
+| `PARKSHIELD_MEDIA_RETENTION_DAYS` | No | No | Evidence retention, constrained to 1–30 days; default and deployed policy are `30`. |
 
-Terraform injects `PARKSHIELD_MEDIA_BUCKET` into ECS as a reserved bucket name. The current privacy-preserving community flow hashes photos and discards raw bytes, so the application does not yet consume that setting. Durable media retention remains disabled until an approved object-store adapter and deletion policy are implemented.
+When `PARKSHIELD_MEDIA_BUCKET` is absent in local/test mode, photos are validated and hashed but raw bytes are discarded. Staging and production reject missing bucket configuration. The AWS SDK uses the ECS task role; do not create application access-key variables. Objects use bucket-default KMS encryption, private/no-store delivery, SHA-256 integrity metadata, short-lived privileged access, rejection deletion, and a maximum 30-day lifecycle.
 
 ## Docker Compose-only variables
 

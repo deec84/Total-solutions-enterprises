@@ -13,6 +13,7 @@ from app.modules.community.domain import (
     ReportCategory,
     ReportStatus,
 )
+from app.modules.community.media import CommunityMediaLifecycle, MediaStorageError
 
 
 class InvalidReportError(ValueError):
@@ -24,8 +25,13 @@ class DuplicateReportError(ValueError):
 
 
 class CommunityReportService:
-    def __init__(self, repository: CommunityReportRepository) -> None:
+    def __init__(
+        self,
+        repository: CommunityReportRepository,
+        media_lifecycle: CommunityMediaLifecycle | None = None,
+    ) -> None:
         self._repository = repository
+        self._media_lifecycle = media_lifecycle
 
     async def submit(
         self,
@@ -35,6 +41,7 @@ class CommunityReportService:
         longitude: float,
         description: str,
         photo: bytes | None = None,
+        photo_content_type: str | None = None,
     ) -> CommunityReport:
         cleaned = " ".join(description.split())
         if len(cleaned) < 12:
@@ -49,8 +56,26 @@ class CommunityReportService:
             raise DuplicateReportError("a matching recent report already exists")
         validation_score = self._validation_score(cleaned, photo)
         status = ReportStatus.PUBLISHED if validation_score >= 0.85 else ReportStatus.PENDING
+        report_id = uuid4()
+        photo_sha256 = hashlib.sha256(photo).hexdigest() if photo else None
+        stored_media = None
+        if photo and self._media_lifecycle:
+            if photo_content_type is None:
+                raise InvalidReportError("photo content type is required")
+            assert photo_sha256 is not None
+            try:
+                stored_media = await self._media_lifecycle.store(
+                    report_id,
+                    photo,
+                    photo_content_type,
+                    photo_sha256,
+                    now,
+                )
+            except ValueError as error:
+                raise InvalidReportError(str(error)) from error
+
         report = CommunityReport(
-            id=uuid4(),
+            id=report_id,
             reporter_id=reporter_id,
             category=category,
             latitude=latitude,
@@ -59,11 +84,25 @@ class CommunityReportService:
             status=status,
             validation_score=validation_score,
             fingerprint=fingerprint,
-            photo_sha256=hashlib.sha256(photo).hexdigest() if photo else None,
+            photo_sha256=photo_sha256,
             created_at=now,
             expires_at=now + timedelta(days=30),
+            photo_object_key=stored_media.object_key if stored_media else None,
+            photo_content_type=stored_media.content_type if stored_media else None,
+            photo_size_bytes=stored_media.size_bytes if stored_media else None,
+            photo_retained_until=stored_media.retained_until if stored_media else None,
         )
-        await self._repository.add(report)
+        try:
+            await self._repository.add(report)
+        except Exception:
+            if stored_media and self._media_lifecycle:
+                try:
+                    await self._media_lifecycle.discard(stored_media.object_key)
+                except MediaStorageError as cleanup_error:
+                    raise MediaStorageError(
+                        "media cleanup failed after report persistence failure"
+                    ) from cleanup_error
+            raise
         return report
 
     async def moderate(
@@ -75,6 +114,8 @@ class CommunityReportService:
         report = await self._repository.set_status(report_id, status, reason.strip())
         if report is None:
             raise InvalidReportError("report not found")
+        if not approved and self._media_lifecycle:
+            report = await self._media_lifecycle.delete_report_photo(report)
         await self._repository.adjust_reputation(report.reporter_id, approved)
         return report
 
