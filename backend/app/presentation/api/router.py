@@ -6,6 +6,7 @@ from app.presentation.api.routes.admin import router as admin_router
 from app.presentation.api.routes.auth import router as auth_router
 from app.presentation.api.routes.community import router as community_router
 from app.presentation.api.routes.health import router as health_router
+from app.presentation.api.routes.ingestion import router as ingestion_router
 from app.presentation.api.routes.notifications import router as notifications_router
 from app.presentation.api.routes.parking import router as parking_router
 from app.presentation.api.routes.parking_ai import router as parking_ai_router
@@ -28,3 +29,6 @@ api_router.include_router(
     recommendations_router, prefix="/recommendations", tags=["parking-recommendations"]
 )
 api_router.include_router(privacy_router, prefix="/privacy", tags=["privacy"])
+api_router.include_router(
+    ingestion_router, prefix="/admin/data", tags=["municipal-data-administration"]
+)

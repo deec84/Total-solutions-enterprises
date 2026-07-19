@@ -81,10 +81,25 @@ class ParkingZoneRow(Base):
     towing_hotspot: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("municipal_sources.id", ondelete="SET NULL"), nullable=True
+    )
+    import_batch_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("municipal_import_batches.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    external_record_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
 
     __table_args__ = (
         Index("ix_parking_zones_geometry", "geometry", postgresql_using="gist"),
         Index("ix_parking_zones_score", "parking_score"),
+        Index(
+            "uq_parking_zones_source_external",
+            "source_id",
+            "external_record_id",
+            unique=True,
+        ),
     )
 
 
@@ -238,10 +253,25 @@ class ParkingFacilityRow(Base):
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("municipal_sources.id", ondelete="SET NULL"), nullable=True
+    )
+    import_batch_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("municipal_import_batches.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    external_record_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
 
     __table_args__ = (
         Index("ix_parking_facilities_location", "location", postgresql_using="gist"),
         Index("ix_parking_facilities_safety", "safety_score"),
+        Index(
+            "uq_parking_facilities_source_external",
+            "source_id",
+            "external_record_id",
+            unique=True,
+        ),
     )
 
 
@@ -303,3 +333,73 @@ class DataRightsRequestRow(Base):
     __table_args__ = (
         Index("ix_data_rights_subject_requested", "subject_reference", "requested_at"),
     )
+
+
+class MunicipalSourceRow(Base):
+    __tablename__ = "municipal_sources"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    jurisdiction: Mapped[str] = mapped_column(String(160), nullable=False)
+    feed_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    data_format: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    license_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    official: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    refresh_interval_minutes: Mapped[int] = mapped_column(nullable=False)
+    stale_after_minutes: Mapped[int] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_municipal_sources_jurisdiction", "jurisdiction"),
+        Index("ix_municipal_sources_enabled", "enabled"),
+    )
+
+
+class MunicipalImportBatchRow(Base):
+    __tablename__ = "municipal_import_batches"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    source_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("municipal_sources.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    importer_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False)
+    input_count: Mapped[int] = mapped_column(nullable=False)
+    accepted_count: Mapped[int] = mapped_column(nullable=False)
+    rejected_count: Mapped[int] = mapped_column(nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index(
+            "uq_municipal_batch_source_digest",
+            "source_id",
+            "content_sha256",
+            unique=True,
+        ),
+        Index("ix_municipal_batches_source_received", "source_id", "received_at"),
+    )
+
+
+class MunicipalQuarantineRow(Base):
+    __tablename__ = "municipal_quarantine"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    batch_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("municipal_import_batches.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    record_index: Mapped[int] = mapped_column(nullable=False)
+    record_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason_detail: Mapped[str] = mapped_column(String(500), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (Index("ix_municipal_quarantine_batch", "batch_id"),)

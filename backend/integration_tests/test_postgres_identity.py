@@ -1,6 +1,7 @@
 """Identity persistence integration against a migrated PostgreSQL/PostGIS instance."""
 
 import asyncio
+import json
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -16,6 +17,8 @@ from app.infrastructure.models import (
     AlertDeliveryRow,
     DataRightsRequestRow,
     LoginRateLimitRow,
+    MunicipalImportBatchRow,
+    MunicipalSourceRow,
     ParkingFacilityRow,
     ParkingZoneRow,
     PushDeviceRow,
@@ -31,6 +34,13 @@ from app.modules.identity.domain import Role, User
 from app.modules.identity.security import PasswordManager
 from app.modules.identity.sql_abuse import SqlLoginRateLimiter
 from app.modules.identity.sql_repositories import SqlSessionRepository, SqlUserRepository
+from app.modules.ingestion.connectors import (
+    CsvParkingFacilityConnector,
+    GeoJsonParkingZoneConnector,
+)
+from app.modules.ingestion.domain import DataFormat, FeedKind, ImportStatus
+from app.modules.ingestion.service import MunicipalIngestionService
+from app.modules.ingestion.sql_repository import SqlMunicipalIngestionRepository
 from app.modules.notifications.domain import (
     DevicePlatform,
     NotificationPreferences,
@@ -342,6 +352,127 @@ def test_privacy_export_and_account_deletion_use_database_cascades() -> None:
                 delete(DataRightsRequestRow).where(
                     DataRightsRequestRow.subject_reference
                     == retained_request.subject_reference
+                )
+            )
+
+    run_isolated_scenario(scenario)
+
+
+def test_governed_municipal_import_upserts_synthetic_postgis_records() -> None:
+    async def scenario() -> None:
+        connectors = {
+            (FeedKind.PARKING_ZONES, DataFormat.GEOJSON): GeoJsonParkingZoneConnector(),
+            (FeedKind.PARKING_FACILITIES, DataFormat.CSV): CsvParkingFacilityConnector(),
+        }
+        async with session_factory() as session, session.begin():
+            ingestion = MunicipalIngestionService(
+                SqlMunicipalIngestionRepository(session), connectors, 1024 * 1024
+            )
+            zone_source = await ingestion.create_source(
+                name="SYNTHETIC Miami-Dade zones",
+                jurisdiction="Synthetic test jurisdiction",
+                feed_kind=FeedKind.PARKING_ZONES,
+                data_format=DataFormat.GEOJSON,
+                source_url="https://example.test/zones.geojson",
+                license_url=None,
+                official=False,
+                refresh_interval_minutes=60,
+                stale_after_minutes=120,
+            )
+            zone_payload = json.dumps(
+                {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {
+                                "external_id": "synthetic-zone-integration",
+                                "name": "SYNTHETIC ZONE — NOT OFFICIAL",
+                                "zone_type": "general",
+                                "parking_score": 80,
+                                "observed_at": "2026-07-17T12:00:00Z",
+                                "expires_at": "2026-07-18T12:00:00Z",
+                            },
+                            "geometry": {
+                                "type": "Polygon",
+                                "coordinates": [
+                                    [
+                                        [-80.20, 25.70],
+                                        [-80.10, 25.70],
+                                        [-80.10, 25.80],
+                                        [-80.20, 25.70],
+                                    ]
+                                ],
+                            },
+                        }
+                    ],
+                }
+            ).encode()
+            zone_batch = await ingestion.import_payload(zone_source.id, zone_payload)
+            assert zone_batch.status is ImportStatus.COMMITTED
+            replay = await ingestion.import_payload(zone_source.id, zone_payload)
+            assert replay.id == zone_batch.id
+
+            facility_source = await ingestion.create_source(
+                name="SYNTHETIC Broward facilities",
+                jurisdiction="Synthetic test jurisdiction",
+                feed_kind=FeedKind.PARKING_FACILITIES,
+                data_format=DataFormat.CSV,
+                source_url="https://example.test/facilities.csv",
+                license_url=None,
+                official=False,
+                refresh_interval_minutes=60,
+                stale_after_minutes=120,
+            )
+            facility_payload = (
+                "external_id,name,address,latitude,longitude,hourly_price_cents,"
+                "safety_score,towing_incidents_per_1000,rating,available_spaces,capacity,"
+                "navigation_url,observed_at,expires_at\n"
+                "synthetic-facility-integration,SYNTHETIC GARAGE — NOT OFFICIAL,"
+                "100 Test Ave,25.7617,-80.1918,1200,90,1.5,4.5,10,100,"
+                "https://example.test/nav,2026-07-17T12:00:00Z,"
+                "2026-07-18T12:00:00Z\n"
+            ).encode()
+            facility_batch = await ingestion.import_payload(
+                facility_source.id, facility_payload
+            )
+            assert facility_batch.status is ImportStatus.COMMITTED
+
+        async with session_factory() as session, session.begin():
+            zone = await session.scalar(
+                select(ParkingZoneRow).where(
+                    ParkingZoneRow.source_id == zone_source.id
+                )
+            )
+            facility = await session.scalar(
+                select(ParkingFacilityRow).where(
+                    ParkingFacilityRow.source_id == facility_source.id
+                )
+            )
+            assert zone is not None
+            assert zone.provenance == "estimated"
+            assert zone.import_batch_id == zone_batch.id
+            assert facility is not None
+            assert facility.provenance == "estimated"
+            assert facility.import_batch_id == facility_batch.id
+            await session.execute(
+                delete(ParkingZoneRow).where(ParkingZoneRow.source_id == zone_source.id)
+            )
+            await session.execute(
+                delete(ParkingFacilityRow).where(
+                    ParkingFacilityRow.source_id == facility_source.id
+                )
+            )
+            await session.execute(
+                delete(MunicipalImportBatchRow).where(
+                    MunicipalImportBatchRow.source_id.in_(
+                        [zone_source.id, facility_source.id]
+                    )
+                )
+            )
+            await session.execute(
+                delete(MunicipalSourceRow).where(
+                    MunicipalSourceRow.id.in_([zone_source.id, facility_source.id])
                 )
             )
 

@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     privacy_policy_version: str = Field(
         default="2026-07-17", min_length=1, max_length=32, pattern=r"^[A-Za-z0-9._-]+$"
     )
+    municipal_imports_enabled: bool = False
+    municipal_max_upload_bytes: int = Field(
+        default=5 * 1024 * 1024, ge=1024, le=10 * 1024 * 1024
+    )
 
     @model_validator(mode="after")
     def validate_deployed_environment(self) -> Self:

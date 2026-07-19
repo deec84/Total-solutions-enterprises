@@ -61,3 +61,7 @@ Private KMS-encrypted evidence storage, integrity metadata, bounded retention, p
 ## 15. Privacy rights and account lifecycle — implemented; hosted/legal gates required
 
 Append-only optional-consent history, data-minimized JSON export, password/MFA-confirmed self-service deletion, external-media deletion before database removal, session and owned-data cascades, pseudonymous request evidence, mobile privacy center, and non-cacheable API responses. Exit: unit, API, repository, PostgreSQL cascade, mobile, security, coverage, and exact-commit hosted gates pass; the owner-approved privacy policy and retention schedule remain mandatory before production or store submission.
+
+## 16. Governed municipal-data ingestion — implemented; hosted/source-rights gates required
+
+MFA-protected source registry, strict offline GeoJSON-zone and CSV-facility connectors, validation and normalization, idempotent batches, PostGIS upserts, record-level lineage, freshness metadata, hash-only quarantine, audit events, size/record limits, and a fail-closed feature flag. Test fixtures are explicitly synthetic and retain estimated provenance. Exit: unit, API, repository, migration, real PostGIS integration, security, coverage, and exact-commit hosted gates pass; enabling any real source remains blocked on owner-approved usage rights, official-status verification, schema mapping, data-quality ownership, and a monitored staging import.
