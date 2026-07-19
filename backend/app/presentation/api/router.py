@@ -9,6 +9,7 @@ from app.presentation.api.routes.health import router as health_router
 from app.presentation.api.routes.notifications import router as notifications_router
 from app.presentation.api.routes.parking import router as parking_router
 from app.presentation.api.routes.parking_ai import router as parking_ai_router
+from app.presentation.api.routes.privacy import router as privacy_router
 from app.presentation.api.routes.recommendations import router as recommendations_router
 from app.presentation.api.routes.recovery import router as recovery_router
 from app.presentation.api.routes.sign_scanner import router as sign_scanner_router
@@ -26,3 +27,4 @@ api_router.include_router(recovery_router, prefix="/recovery", tags=["towing-rec
 api_router.include_router(
     recommendations_router, prefix="/recommendations", tags=["parking-recommendations"]
 )
+api_router.include_router(privacy_router, prefix="/privacy", tags=["privacy"])

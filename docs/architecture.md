@@ -6,9 +6,11 @@ ParkShield begins as a modular monolith: one deployable API with independently o
 
 The mobile client uses feature-first Clean Architecture. The backend uses presentation, application, domain, and infrastructure layers. PostgreSQL is the authoritative transactional store and encrypted object storage holds governed community media outside the database. Media access uses privileged, short-lived grants; object keys remain internal, every access or purge is audited, and retention never exceeds 30 days. Provider interfaces isolate OCR, prediction, maps, email, and push delivery so independently scaled workers can be introduced without changing domain contracts.
 
-## Planned bounded contexts
+## Bounded contexts
 
-Identity & Access; Parking Regulations; Location Intelligence; Risk Scoring; Sign Understanding; Community Trust; Recovery; Recommendations; Notifications; Billing; Administration & Audit.
+Identity & Access; Parking Regulations; Location Intelligence; Risk Scoring; Sign Understanding; Community Trust; Recovery; Recommendations; Notifications; Privacy & Data Rights; Billing; Administration & Audit.
+
+Privacy & Data Rights owns optional-consent history, access/export requests, and account deletion. It depends on identity only through domain data and on private media through a deletion port. It never reads provider credentials, exposes storage keys, or writes another module's tables directly. The SQL adapter assembles an export from authoritative rows and the application service coordinates fail-closed deletion before the user transaction cascades owned records.
 
 ## Trust and AI constraints
 

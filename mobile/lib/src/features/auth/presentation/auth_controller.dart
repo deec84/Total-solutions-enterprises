@@ -43,6 +43,13 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void accountDeleted() {
+    status = AuthStatus.signedOut;
+    userRole = 'user';
+    errorMessage = null;
+    notifyListeners();
+  }
+
   Future<bool> register(
           {required String email, required String password}) async =>
       _runAction(

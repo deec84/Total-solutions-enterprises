@@ -5,9 +5,22 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.models import CommunityReportRow, SessionRow, UserRow
+from app.infrastructure.models import (
+    AlertDeliveryRow,
+    AuditEventRow,
+    CommunityReportRow,
+    DataRightsRequestRow,
+    NotificationPreferenceRow,
+    PrivacyConsentEventRow,
+    PushDeviceRow,
+    ReportAppealRow,
+    ReporterReputationRow,
+    SessionRow,
+    UserRow,
+)
 from app.modules.community.domain import (
     AppealStatus,
     CommunityReport,
@@ -23,6 +36,14 @@ from app.modules.identity.sql_repositories import (
     SqlSessionRepository,
     SqlUserRepository,
 )
+from app.modules.privacy.domain import (
+    ConsentDecision,
+    ConsentPurpose,
+    DataRequestStatus,
+    DataRequestType,
+    DataRightsRequest,
+)
+from app.modules.privacy.sql_repository import SqlPrivacyRepository
 
 
 def session_mock() -> AsyncMock:
@@ -203,5 +224,215 @@ def test_sql_community_repository_maps_media_retention_and_deletion() -> None:
         deleted = await repository.mark_photo_deleted(row.id, deleted_at)
         assert deleted is not None and not deleted.photo_available
         assert deleted.photo_deleted_at == deleted_at
+
+    asyncio.run(scenario())
+
+
+def test_sql_privacy_repository_writes_and_selects_latest_consents() -> None:
+    async def scenario() -> None:
+        db = session_mock()
+        repository = SqlPrivacyRepository(db)
+        user_id = uuid4()
+        now = datetime.now(UTC)
+        first = ConsentDecision(
+            uuid4(), user_id, ConsentPurpose.PRODUCT_ANALYTICS, "v1", True, now
+        )
+        request = DataRightsRequest(
+            uuid4(),
+            user_id,
+            "a" * 64,
+            DataRequestType.EXPORT,
+            DataRequestStatus.PROCESSING,
+            now,
+        )
+
+        await repository.record_consent(first)
+        await repository.add_request(request)
+        await repository.complete_request(request.id, now)
+        assert db.add.call_count == 2
+        assert db.flush.await_count == 2
+
+        latest_row = PrivacyConsentEventRow(
+            id=uuid4(),
+            user_id=user_id,
+            purpose=ConsentPurpose.PRODUCT_ANALYTICS,
+            policy_version="v2",
+            granted=False,
+            occurred_at=now + timedelta(seconds=1),
+        )
+        older_row = PrivacyConsentEventRow(
+            id=first.id,
+            user_id=user_id,
+            purpose=first.purpose,
+            policy_version=first.policy_version,
+            granted=first.granted,
+            occurred_at=first.occurred_at,
+        )
+        recommendation_row = PrivacyConsentEventRow(
+            id=uuid4(),
+            user_id=user_id,
+            purpose=ConsentPurpose.PERSONALIZED_RECOMMENDATIONS,
+            policy_version="v2",
+            granted=True,
+            occurred_at=now,
+        )
+        db.scalars.return_value = [recommendation_row, latest_row, older_row]
+
+        decisions = await repository.latest_consents(user_id)
+        assert len(decisions) == 2
+        assert decisions[0].purpose is ConsentPurpose.PERSONALIZED_RECOMMENDATIONS
+        assert decisions[1].granted is False
+
+    asyncio.run(scenario())
+
+
+def test_sql_privacy_export_minimizes_sensitive_fields_and_deletes_account() -> None:
+    async def scenario() -> None:
+        db = session_mock()
+        repository = SqlPrivacyRepository(db)
+        now = datetime.now(UTC)
+        user_id, report_id = uuid4(), uuid4()
+        user = UserRow(
+            id=user_id,
+            email="export@example.com",
+            password_hash="never-export-this-password-hash",
+            role="user",
+            is_active=True,
+            is_verified=True,
+            created_at=now,
+            mfa_secret="never-export-this-mfa-secret",
+            mfa_enabled=True,
+        )
+        preferences = NotificationPreferenceRow(
+            user_id=user_id,
+            parking_alerts_enabled=True,
+            background_location_enabled=True,
+            push_enabled=True,
+            quiet_start_hour=22,
+            quiet_end_hour=7,
+            timezone="UTC",
+            updated_at=now,
+        )
+        reputation = ReporterReputationRow(
+            user_id=user_id, score=0.75, approved_reports=2, rejected_reports=1
+        )
+        db.get.side_effect = [user, preferences, reputation]
+        session = SessionRow(
+            id=uuid4(), user_id=user_id, created_at=now, expires_at=now + timedelta(days=1)
+        )
+        report = CommunityReportRow(
+            id=report_id,
+            reporter_id=user_id,
+            category="sign",
+            latitude=25.7,
+            longitude=-80.2,
+            description="Complete sign evidence submitted by the account owner",
+            status="pending",
+            validation_score=0.7,
+            fingerprint="f" * 64,
+            photo_sha256="b" * 64,
+            photo_object_key=f"community-reports/{report_id}/{'b' * 64}",
+            photo_content_type="image/jpeg",
+            photo_size_bytes=1024,
+            photo_retained_until=now + timedelta(days=7),
+            photo_deleted_at=None,
+            moderation_reason=None,
+            created_at=now,
+            expires_at=now + timedelta(days=30),
+        )
+        appeal = ReportAppealRow(
+            id=uuid4(),
+            report_id=report_id,
+            appellant_id=user_id,
+            reason="Please review the full evidence",
+            status="open",
+            created_at=now,
+            resolved_at=None,
+            resolution_reason=None,
+        )
+        consent = PrivacyConsentEventRow(
+            id=uuid4(),
+            user_id=user_id,
+            purpose="product_analytics",
+            policy_version="v1",
+            granted=False,
+            occurred_at=now,
+        )
+        request = DataRightsRequestRow(
+            id=uuid4(),
+            user_id=user_id,
+            subject_reference="c" * 64,
+            request_type="export",
+            status="processing",
+            requested_at=now,
+            completed_at=None,
+        )
+        device = PushDeviceRow(
+            id=uuid4(),
+            user_id=user_id,
+            platform="ios",
+            token_ciphertext="never-export-this-device-token",
+            token_hash="d" * 64,
+            enabled=True,
+            updated_at=now,
+        )
+        delivery = AlertDeliveryRow(
+            id=uuid4(),
+            user_id=user_id,
+            dedupe_key="never-export-this-dedupe-key",
+            status="sent",
+            created_at=now,
+        )
+        audit = AuditEventRow(
+            id=uuid4(), action="session.login_succeeded", subject_id=user_id, occurred_at=now
+        )
+        db.scalars.side_effect = [
+            [session],
+            [report],
+            [appeal],
+            [consent],
+            [request],
+            [device],
+            [delivery],
+            [audit],
+        ]
+
+        exported = await repository.export_for_user(user_id)
+        serialized = str(exported)
+        assert exported["profile"] == {
+            "id": str(user_id),
+            "email": "export@example.com",
+            "role": "user",
+            "is_active": True,
+            "is_verified": True,
+            "mfa_enabled": True,
+            "created_at": now.isoformat(),
+        }
+        assert "never-export" not in serialized
+        assert "photo_object_key" not in serialized
+        assert exported["reporter_reputation"] == {
+            "score": 0.75,
+            "approved_reports": 2,
+            "rejected_reports": 1,
+        }
+
+        db.scalars.side_effect = None
+        db.scalars.return_value = [report.photo_object_key, None]
+        assert await repository.active_media_keys(user_id) == (report.photo_object_key,)
+
+        missing = session_mock()
+        missing.get.return_value = None
+        with pytest.raises(ValueError, match="no longer exists"):
+            await SqlPrivacyRepository(missing).export_for_user(user_id)
+
+        updated = MagicMock()
+        deleted = MagicMock()
+        deleted.scalar_one_or_none.return_value = user_id
+        db.execute.side_effect = [updated, deleted]
+        assert await repository.delete_account(user_id)
+
+        deleted.scalar_one_or_none.return_value = None
+        db.execute.side_effect = [updated, deleted]
+        assert not await repository.delete_account(user_id)
 
     asyncio.run(scenario())

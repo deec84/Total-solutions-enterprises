@@ -259,3 +259,47 @@ class LoginRateLimitRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (Index("ix_login_rate_limits_updated", "updated_at"),)
+
+
+class PrivacyConsentEventRow(Base):
+    __tablename__ = "privacy_consent_events"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    purpose: Mapped[str] = mapped_column(String(48), nullable=False)
+    policy_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    granted: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index(
+            "ix_privacy_consent_user_purpose_occurred",
+            "user_id",
+            "purpose",
+            "occurred_at",
+        ),
+    )
+
+
+class DataRightsRequestRow(Base):
+    __tablename__ = "data_rights_requests"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    user_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    subject_reference: Mapped[str] = mapped_column(String(64), nullable=False)
+    request_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_data_rights_subject_requested", "subject_reference", "requested_at"),
+    )

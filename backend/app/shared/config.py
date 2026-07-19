@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     tow_provider_token: str | None = None
     media_bucket: str | None = None
     media_retention_days: int = Field(default=30, ge=1, le=30)
+    privacy_policy_version: str = Field(
+        default="2026-07-17", min_length=1, max_length=32, pattern=r"^[A-Za-z0-9._-]+$"
+    )
 
     @model_validator(mode="after")
     def validate_deployed_environment(self) -> Self:
