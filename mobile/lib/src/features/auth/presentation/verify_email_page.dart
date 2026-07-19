@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/auth_controller.dart';
 
 class VerifyEmailPage extends StatefulWidget {
@@ -21,24 +22,23 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Verify email')),
+        appBar: AppBar(title: Text(context.l10n.verifyEmail)),
         body: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const Text(
-                  'Open your verification link, or paste its token below.'),
+              Text(context.l10n.verificationHelp),
               const SizedBox(height: 16),
               TextField(
                 controller: _token,
                 autocorrect: false,
                 decoration:
-                    const InputDecoration(labelText: 'Verification token'),
+                    InputDecoration(labelText: context.l10n.verificationToken),
               ),
               const SizedBox(height: 24),
               FilledButton(
-                  onPressed: _submit, child: const Text('Verify account')),
+                  onPressed: _submit, child: Text(context.l10n.verifyAccount)),
             ],
           ),
         ),
@@ -50,7 +50,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     if (!mounted) return;
     if (verified) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email verified. You can now sign in.')),
+        SnackBar(content: Text(context.l10n.emailVerified)),
       );
       Navigator.of(context).pop();
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/community/data/community_report_api.dart';
 import 'package:parkshield_mobile/src/features/community/domain/community_report.dart';
@@ -55,21 +56,24 @@ class _CommunityReportPageState extends State<CommunityReportPage> {
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
-          Text('Community report',
+          Text(context.l10n.communityTitle,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          const Text(
-              'Reports are AI-screened and may require moderator review.'),
+          Text(context.l10n.communityIntro),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
             initialValue: _category,
-            decoration: const InputDecoration(labelText: 'Report type'),
-            items: const <DropdownMenuItem<String>>[
+            decoration: InputDecoration(labelText: context.l10n.reportType),
+            items: <DropdownMenuItem<String>>[
               DropdownMenuItem(
-                  value: 'restriction', child: Text('New restriction')),
-              DropdownMenuItem(value: 'towing', child: Text('Towing activity')),
-              DropdownMenuItem(value: 'price', child: Text('Updated price')),
-              DropdownMenuItem(value: 'sign', child: Text('Parking sign')),
+                  value: 'restriction',
+                  child: Text(context.l10n.newRestriction)),
+              DropdownMenuItem(
+                  value: 'towing', child: Text(context.l10n.towingActivity)),
+              DropdownMenuItem(
+                  value: 'price', child: Text(context.l10n.updatedPrice)),
+              DropdownMenuItem(
+                  value: 'sign', child: Text(context.l10n.parkingSign)),
             ],
             onChanged: _loading
                 ? null
@@ -82,17 +86,17 @@ class _CommunityReportPageState extends State<CommunityReportPage> {
             minLines: 3,
             maxLines: 6,
             maxLength: 1000,
-            decoration: const InputDecoration(
-              labelText: 'What did you observe?',
-              hintText:
-                  'Include the restriction, time, price, or towing details.',
+            decoration: InputDecoration(
+              labelText: context.l10n.whatObserved,
+              hintText: context.l10n.observationHint,
             ),
           ),
           OutlinedButton.icon(
             onPressed: _loading ? null : _choosePhoto,
             icon: const Icon(Icons.add_a_photo_outlined),
-            label: Text(
-                _photo == null ? 'Add supporting photo' : 'Photo attached'),
+            label: Text(_photo == null
+                ? context.l10n.addPhoto
+                : context.l10n.photoAttached),
           ),
           const SizedBox(height: 12),
           FilledButton(
@@ -102,7 +106,7 @@ class _CommunityReportPageState extends State<CommunityReportPage> {
                     dimension: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Submit report'),
+                : Text(context.l10n.submitReport),
           ),
           if (_message case final String message)
             Padding(
@@ -127,7 +131,7 @@ class _CommunityReportPageState extends State<CommunityReportPage> {
 
   Future<void> _submit() async {
     if (_description.text.trim().length < 12) {
-      setState(() => _message = 'Add at least 12 characters of useful detail.');
+      setState(() => _message = context.l10n.reportMinimumDetail);
       return;
     }
     setState(() {
@@ -145,15 +149,15 @@ class _CommunityReportPageState extends State<CommunityReportPage> {
       if (mounted) {
         setState(() {
           _message = report.status == 'published'
-              ? 'Report verified and published.'
-              : 'Report received and queued for review.';
+              ? context.l10n.reportPublished
+              : context.l10n.reportQueued;
           _description.clear();
           _photo = null;
         });
       }
     } on Exception {
       if (mounted) {
-        setState(() => _message = 'The report could not be submitted.');
+        setState(() => _message = context.l10n.reportSubmitError);
       }
     } finally {
       if (mounted) setState(() => _loading = false);

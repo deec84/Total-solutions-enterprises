@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/auth_controller.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/reset_password_page.dart';
 
@@ -22,24 +23,23 @@ class _RecoveryPageState extends State<RecoveryPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Recover password')),
+        appBar: AppBar(title: Text(context.l10n.recoverPassword)),
         body: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const Text(
-                'Enter your email. If an account exists, we will send recovery instructions.',
-              ),
+              Text(context.l10n.recoveryInstructions),
               const SizedBox(height: 16),
               TextField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: context.l10n.email),
               ),
               const SizedBox(height: 24),
               FilledButton(
-                  onPressed: _submit, child: const Text('Send instructions')),
+                  onPressed: _submit,
+                  child: Text(context.l10n.sendInstructions)),
               TextButton(
                 onPressed: () => Navigator.of(context).push<void>(
                   MaterialPageRoute<void>(
@@ -47,7 +47,7 @@ class _RecoveryPageState extends State<RecoveryPage> {
                         ResetPasswordPage(controller: widget.controller),
                   ),
                 ),
-                child: const Text('I have a recovery token'),
+                child: Text(context.l10n.haveRecoveryToken),
               ),
             ],
           ),
@@ -59,8 +59,7 @@ class _RecoveryPageState extends State<RecoveryPage> {
     await widget.controller.requestPasswordReset(_email.text);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('If the account exists, instructions were sent.')),
+      SnackBar(content: Text(context.l10n.recoverySent)),
     );
   }
 }

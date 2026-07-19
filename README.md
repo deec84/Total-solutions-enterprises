@@ -11,7 +11,7 @@ Production-oriented monorepo for ParkShield AI, a parking-intelligence platform 
 
 ## Delivery status
 
-Phases 1–17 implement identity, PostGIS risk mapping, explainable Parking AI, sign scanning, community trust, governed media evidence, administration, preventive alerts, towing recovery, nearby recommendations, privacy rights, governed municipal-data ingestion, provider-neutral entitlements, system qualification, and deployment automation. Production promotion remains deliberately gated on green CI, environment-owned cloud/provider credentials, approved municipal/map data rights, legal approval, infrastructure apply evidence, store contracts/products/signing, and real purchase-verification evidence. See `docs/roadmap.md`, `docs/phase-11-deployment.md`, `docs/phase-14-community-media-lifecycle.md`, `docs/phase-15-privacy-rights.md`, `docs/phase-16-municipal-ingestion.md`, and `docs/phase-17-billing-entitlements.md`.
+Phases 1–18 implement identity, PostGIS risk mapping, explainable Parking AI, sign scanning, community trust, governed media evidence, administration, preventive alerts, towing recovery, nearby recommendations, privacy rights, governed municipal-data ingestion, provider-neutral entitlements, English/Spanish localization, accessibility qualification, system qualification, and deployment automation. Production promotion remains deliberately gated on green CI, environment-owned cloud/provider credentials, approved municipal/map data rights, legal and language approval, infrastructure apply evidence, store contracts/products/signing, and real purchase-verification evidence. See `docs/roadmap.md`, `docs/phase-11-deployment.md`, `docs/phase-14-community-media-lifecycle.md`, `docs/phase-15-privacy-rights.md`, `docs/phase-16-municipal-ingestion.md`, `docs/phase-17-billing-entitlements.md`, and `docs/phase-18-i18n-accessibility.md`.
 
 ## Local startup
 
@@ -65,8 +65,9 @@ make validate
 
 This command runs the isolated authentication regression, the full backend suite
 with its unchanged 90% coverage requirement, static/security analysis, Flutter
-API/controller/rendering/accessibility tests with a required 75% line-coverage
-minimum, an Android debug APK build, Terraform validation, IaC scanning,
+API/controller/rendering/bilingual-accessibility tests with a required 75%
+maintained-source line-coverage minimum, localization catalog/native-metadata
+validation, an Android debug APK build, Terraform validation, IaC scanning,
 workflow linting, and plist validation.
 PostGIS/container and iOS builds remain non-optional hosted CI jobs because this
 host has neither Docker nor the full Xcode application.

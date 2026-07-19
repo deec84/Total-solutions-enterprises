@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/auth_controller.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/recovery_page.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/register_page.dart';
@@ -27,7 +28,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('ParkShield AI')),
+        appBar: AppBar(title: Text(context.l10n.appTitle)),
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -41,18 +42,19 @@ class _LoginPageState extends State<LoginPage> {
                     children: <Widget>[
                       const Icon(Icons.shield_outlined, size: 72),
                       const SizedBox(height: 24),
-                      Text('Park with confidence',
+                      Text(context.l10n.parkWithConfidence,
                           style: Theme.of(context).textTheme.headlineSmall),
                       const SizedBox(height: 24),
                       TextFormField(
                         controller: _email,
                         autofillHints: const <String>[AutofillHints.email],
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'Email'),
+                        decoration:
+                            InputDecoration(labelText: context.l10n.email),
                         validator: (String? value) =>
                             value != null && value.contains('@')
                                 ? null
-                                : 'Enter a valid email.',
+                                : context.l10n.enterValidEmail,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -60,16 +62,23 @@ class _LoginPageState extends State<LoginPage> {
                         obscureText: true,
                         autofillHints: const <String>[AutofillHints.password],
                         decoration:
-                            const InputDecoration(labelText: 'Password'),
-                        validator: (String? value) => value != null &&
-                                value.length >= 12
-                            ? null
-                            : 'Password must contain at least 12 characters.',
+                            InputDecoration(labelText: context.l10n.password),
+                        validator: (String? value) =>
+                            value != null && value.length >= 12
+                                ? null
+                                : context.l10n.passwordMinimum,
                       ),
-                      if (widget.controller.errorMessage
-                          case final String message) ...<Widget>[
+                      if (widget.controller.failure
+                          case final AuthFailure failure) ...<Widget>[
                         const SizedBox(height: 16),
-                        Semantics(liveRegion: true, child: Text(message)),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(switch (failure) {
+                            AuthFailure.signIn => context.l10n.authSignInError,
+                            AuthFailure.request =>
+                              context.l10n.authRequestError,
+                          }),
+                        ),
                       ],
                       const SizedBox(height: 24),
                       FilledButton(
@@ -81,7 +90,7 @@ class _LoginPageState extends State<LoginPage> {
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Sign in'),
+                            : Text(context.l10n.signIn),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(context).push<void>(
@@ -90,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
                                 RecoveryPage(controller: widget.controller),
                           ),
                         ),
-                        child: const Text('Forgot password?'),
+                        child: Text(context.l10n.forgotPassword),
                       ),
                       OutlinedButton(
                         onPressed: () => Navigator.of(context).push<void>(
@@ -99,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
                                 RegisterPage(controller: widget.controller),
                           ),
                         ),
-                        child: const Text('Create account'),
+                        child: Text(context.l10n.createAccount),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(context).push<void>(
@@ -108,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
                                 VerifyEmailPage(controller: widget.controller),
                           ),
                         ),
-                        child: const Text('Verify email'),
+                        child: Text(context.l10n.verifyEmail),
                       ),
                     ],
                   ),

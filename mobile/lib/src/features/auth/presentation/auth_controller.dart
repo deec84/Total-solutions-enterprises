@@ -3,13 +3,15 @@ import 'package:parkshield_mobile/src/features/auth/domain/auth_session.dart';
 
 enum AuthStatus { checking, signedOut, signedIn }
 
+enum AuthFailure { signIn, request }
+
 class AuthController extends ChangeNotifier {
   AuthController(this._gateway);
 
   final AuthGateway _gateway;
   AuthStatus status = AuthStatus.checking;
   bool submitting = false;
-  String? errorMessage;
+  AuthFailure? failure;
   String userRole = 'user';
 
   Future<void> initialize() async {
@@ -22,14 +24,14 @@ class AuthController extends ChangeNotifier {
 
   Future<void> login({required String email, required String password}) async {
     submitting = true;
-    errorMessage = null;
+    failure = null;
     notifyListeners();
     try {
       await _gateway.login(email: email.trim(), password: password);
       userRole = _gateway.currentRole;
       status = AuthStatus.signedIn;
     } on Exception {
-      errorMessage = 'Unable to sign in. Check your credentials.';
+      failure = AuthFailure.signIn;
     } finally {
       submitting = false;
       notifyListeners();
@@ -46,7 +48,7 @@ class AuthController extends ChangeNotifier {
   void accountDeleted() {
     status = AuthStatus.signedOut;
     userRole = 'user';
-    errorMessage = null;
+    failure = null;
     notifyListeners();
   }
 
@@ -70,13 +72,13 @@ class AuthController extends ChangeNotifier {
 
   Future<bool> _runAction(Future<void> Function() action) async {
     submitting = true;
-    errorMessage = null;
+    failure = null;
     notifyListeners();
     try {
       await action();
       return true;
     } on Exception {
-      errorMessage = 'The request could not be completed. Please try again.';
+      failure = AuthFailure.request;
       return false;
     } finally {
       submitting = false;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/auth_controller.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -24,7 +25,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Create account')),
+        appBar: AppBar(title: Text(context.l10n.createAccount)),
         body: ListView(
           padding: const EdgeInsets.all(24),
           children: <Widget>[
@@ -37,21 +38,28 @@ class _RegisterPageState extends State<RegisterPage> {
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
                     autofillHints: const <String>[AutofillHints.newUsername],
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    validator: _validateEmail,
+                    decoration: InputDecoration(labelText: context.l10n.email),
+                    validator: (String? value) =>
+                        value != null && value.contains('@')
+                            ? null
+                            : context.l10n.enterValidEmail,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _password,
                     obscureText: true,
                     autofillHints: const <String>[AutofillHints.newPassword],
-                    decoration: const InputDecoration(labelText: 'Password'),
-                    validator: _validatePassword,
+                    decoration:
+                        InputDecoration(labelText: context.l10n.password),
+                    validator: (String? value) =>
+                        value != null && value.length >= 12
+                            ? null
+                            : context.l10n.passwordMinimum,
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: widget.controller.submitting ? null : _submit,
-                    child: const Text('Create account'),
+                    child: Text(context.l10n.createAccount),
                   ),
                 ],
               ),
@@ -59,14 +67,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ],
         ),
       );
-
-  String? _validateEmail(String? value) =>
-      value != null && value.contains('@') ? null : 'Enter a valid email.';
-
-  String? _validatePassword(String? value) =>
-      value != null && value.length >= 12
-          ? null
-          : 'Password must contain at least 12 characters.';
 
   Future<void> _submit() async {
     if (!(_form.currentState?.validate() ?? false)) return;
@@ -77,8 +77,7 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!mounted) return;
     if (created) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Check your email to verify your account.')),
+        SnackBar(content: Text(context.l10n.checkEmailVerification)),
       );
       Navigator.of(context).pop();
     }

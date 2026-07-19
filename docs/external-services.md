@@ -23,6 +23,7 @@ This is the exact external dependency inventory. None of these accounts or crede
 | Google Play Console | Organization account, application ID `ai.parkshield.parkshield_mobile`, subscription products, payments profile, real-time developer notifications, Play App Signing enrollment, upload key | Product IDs, verification service identity, upload `.jks`, alias and passwords | Workload identity/Secrets Manager / protected GitHub environment plus offline recovery custody | Real native purchases, signed Android release, and Play submission |
 | Operational contacts | Monitored alarm email, security contact, support contact, privacy owner, incident commander rotation | Email/group identities | Organization directory and AWS SNS | Alert confirmation, incident response, store/legal readiness |
 | Legal/privacy approval | Privacy policy URL and version, terms, retention schedule, location/background-consent review, deletion exceptions, provider DPAs and data rights | Approved documents and URLs | Controlled document system / public site | Production and store approval |
+| Language/accessibility approval | Spanish product/legal reviewer, VoiceOver/TalkBack device matrix, accessibility owner, localized store copy and screenshots | Approved copy and signed review evidence; no application secret | Controlled document system / store consoles | Spanish production launch and localized store submission |
 
 An OpenAI or other hosted LLM account is **not required** by the current implementation. Parking decisions use deterministic verified-data rules and the documented conservative local predictor. Introducing a hosted AI provider would require a separate architecture, privacy, safety, cost, and data-processing review.
 
@@ -62,6 +63,7 @@ For `mobile-production`, collect the three variables and eight secrets listed in
 - Adding provider-specific native push configuration; the provider and its security model must be selected first.
 - Producing signed Android/iOS artifacts, store submissions, or releases.
 - Approving the production privacy-policy version, jurisdiction-specific deletion exceptions, and final retention schedule.
+- Approving Spanish product/legal copy, completing physical-device VoiceOver/TalkBack journeys, and approving localized store-listing assets.
 - Authorizing staging or production promotion.
 
 These are real gates. They must remain blocked until the named owner supplies the corresponding account, credential, contract, or approval.

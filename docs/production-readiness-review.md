@@ -12,7 +12,7 @@ The application source, migrations, client, CI/CD, infrastructure, and operation
 - Alembic: one linear head at `0014_billing_entitlements`; full offline SQL render succeeds.
 - Terraform: formatting and provider-schema validation pass with AWS 6.55.0.
 - Trivy IaC: zero high/critical findings; no ignored findings.
-- Flutter: offline dependency resolution, Dart formatting, Analyze with fatal infos, and all 49 API/controller/rendering/model/accessibility/stop-detection/privacy/billing tests pass; LCOV records 1,585/1,976 executable lines (80.21%) against the enforced 75% minimum.
+- Flutter: offline dependency resolution, generated English/Spanish catalogs, Dart formatting, Analyze with fatal infos, and all 53 API/controller/rendering/model/bilingual-accessibility/stop-detection/privacy/billing tests pass; LCOV records 1,823/2,279 maintained executable lines (79.99%) against the enforced 75% minimum. The three generated localization files are excluded from line coverage and instead fail closed under catalog parity, regeneration-drift, native-metadata, and direct localization tests.
 - Android: Temurin 17, API/target 36, Build Tools 36.0.0, NDK 28.2.13676358, and all SDK licenses are installed; the debug APK builds successfully.
 - GitHub workflows: YAML parse and Actionlint 1.7.12 pass; iOS export plist validates.
 - Repository onboarding: the ephemeral-index preflight includes dependency locks and the Android Gradle Wrapper, and rejects ignored secrets/signing/state/build paths, high-confidence credential patterns, whitespace errors, and files over 50 MB.
@@ -21,6 +21,7 @@ The application source, migrations, client, CI/CD, infrastructure, and operation
 - Community media: the API stores no raw bytes in PostgreSQL, uses SHA-256-verified private S3 objects through the ECS task role, limits retention to 30 days, deletes rejected evidence, issues only short-lived privileged access grants, and audits access/purge operations. Terraform blocks public access, denies insecure transport, applies KMS encryption, version expiry, and least-privilege task permissions.
 - Municipal ingestion: the disabled-by-default, MFA-protected boundary accepts only bounded uploaded GeoJSON zones or CSV facilities, records source/batch lineage, uses hash-only quarantine, preserves estimated provenance for synthetic/unapproved sources, and never performs arbitrary outbound fetches. Terraform propagates the disabled feature flag; real activation requires source-rights and staging evidence.
 - Billing: the disabled-by-default boundary requires server verification before granting entitlements, accepts production evidence only in production, persists no raw receipt/store identifier, unlinks retained pseudonymous evidence during account deletion, exposes no invented pricing, and ships with the native purchase bridge disabled. Accepting money remains blocked on store/provider/legal decisions and sandbox evidence.
+- Internationalization/accessibility: 243 first-party messages have key-identical English and Spanish catalogs; system locale selection, localized trust labels, dates/currency, native permission purpose strings, 200% text scale, semantics, contrast, and Android target sizes are gated. External municipal/community/provider/AI content keeps its source language and provenance instead of receiving an unverified translation.
 
 ## Mandatory external promotion evidence
 
@@ -31,6 +32,7 @@ The application source, migrations, client, CI/CD, infrastructure, and operation
 5. Valid Android/Apple signing custody and successful signed release artifacts before store submission.
 6. Staging evidence that the account-owned KMS/S3 policy accepts upload, privileged access, rejection deletion, expiry purge, and noncurrent-version expiration without public exposure.
 7. Accepted Apple/Google paid-app agreements, approved products/pricing/refund/tax policy, real native purchase and server-notification adapters, verification secrets, and sandbox purchase/renewal/refund/revocation/restore evidence.
+8. Owner-approved Spanish product/legal review, physical-device VoiceOver and TalkBack journeys, and approved English/Spanish App Store and Play listing copy/screenshots.
 
 No CI job is skipped or marked allowed-to-fail to satisfy these gates.
 

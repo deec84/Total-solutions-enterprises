@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/auth_api.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/auth_controller.dart';
@@ -63,7 +64,7 @@ class _AuthGateState extends State<AuthGate> {
       final bool verified = await _controller.verifyEmail(token);
       if (verified && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email verified. You can now sign in.')),
+          SnackBar(content: Text(context.l10n.emailVerified)),
         );
       }
     } else if (uri.host == 'reset-password') {

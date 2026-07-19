@@ -10,8 +10,12 @@ if [ ! -f "$LCOV_FILE" ]; then
 fi
 
 awk -F: -v minimum="$MINIMUM_PERCENT" '
-  /^LF:/ { found += $2 }
-  /^LH:/ { hit += $2 }
+  /^SF:/ {
+    generated = ($0 ~ /lib\/l10n\/generated\//)
+    if (generated) excluded_files += 1
+  }
+  /^LF:/ && !generated { found += $2 }
+  /^LH:/ && !generated { hit += $2 }
   END {
     if (found <= 0) {
       print "Flutter coverage report contains no executable lines." > "/dev/stderr"
@@ -19,8 +23,9 @@ awk -F: -v minimum="$MINIMUM_PERCENT" '
     }
 
     percent = (100 * hit) / found
-    printf "Flutter line coverage: %d/%d (%.2f%%); required: %.2f%%\n", \
-      hit, found, percent, minimum
+    printf "Flutter line coverage: %d/%d (%.2f%%); required: %.2f%%; " \
+      "generated localization files excluded: %d\n", \
+      hit, found, percent, minimum, excluded_files
 
     if (percent + 0.000001 < minimum) {
       print "Flutter coverage gate failed." > "/dev/stderr"

@@ -58,7 +58,7 @@ void main() {
     await controller.login(
         email: 'person@example.com', password: 'secure-password');
     expect(controller.status, AuthStatus.signedIn);
-    expect(controller.errorMessage, isNull);
+    expect(controller.failure, isNull);
     await controller.logout();
     expect(controller.status, AuthStatus.signedOut);
 
@@ -80,6 +80,6 @@ void main() {
 
     expect(controller.status, AuthStatus.signedOut);
     expect(controller.submitting, isFalse);
-    expect(controller.errorMessage, isNotNull);
+    expect(controller.failure, AuthFailure.signIn);
   });
 }

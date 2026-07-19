@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:parkshield_mobile/src/core/localization/domain_labels.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/recovery/data/tow_recovery_api.dart';
 import 'package:parkshield_mobile/src/features/recovery/domain/tow_recovery.dart';
@@ -47,13 +50,10 @@ class _TowRecoveryPageState extends State<TowRecoveryPage> {
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.all(20),
         children: <Widget>[
-          Text('Find a towed vehicle',
+          Text(context.l10n.recoveryTitle,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          const Text(
-            'Search verified municipal and towing-provider records. Never pay from an '
-            'unverified message or phone call.',
-          ),
+          Text(context.l10n.recoveryIntro),
           const SizedBox(height: 20),
           Form(
             key: _formKey,
@@ -63,47 +63,47 @@ class _TowRecoveryPageState extends State<TowRecoveryPage> {
                   controller: _state,
                   textCapitalization: TextCapitalization.characters,
                   maxLength: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Vehicle state',
-                    hintText: 'FL',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.vehicleState,
+                    hintText: context.l10n.stateHint,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (String? value) => value?.trim().length == 2
                       ? null
-                      : 'Enter a 2-letter state code',
+                      : context.l10n.stateValidation,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _plate,
                   textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    labelText: 'License plate',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.licensePlate,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (String? value) => (value?.trim().length ?? 0) >= 2
                       ? null
-                      : 'Enter the license plate',
+                      : context.l10n.plateValidation,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _vin,
                   textCapitalization: TextCapitalization.characters,
                   maxLength: 6,
-                  decoration: const InputDecoration(
-                    labelText: 'Last 6 VIN characters (optional)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.vinLastSix,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (String? value) {
                     final int length = value?.trim().length ?? 0;
                     return length == 0 || length == 6
                         ? null
-                        : 'Enter exactly 6 characters';
+                        : context.l10n.vinValidation;
                   },
                 ),
                 FilledButton.icon(
                   onPressed: _loading ? null : _lookup,
                   icon: const Icon(Icons.search),
-                  label: const Text('Search tow records'),
+                  label: Text(context.l10n.searchTowRecords),
                 ),
               ],
             ),
@@ -140,7 +140,7 @@ class _TowRecoveryPageState extends State<TowRecoveryPage> {
       if (mounted) setState(() => _result = result);
     } on Exception {
       if (mounted) {
-        setState(() => _error = 'Tow lookup is temporarily unavailable.');
+        setState(() => _error = context.l10n.towLookupUnavailable);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -163,7 +163,10 @@ class _RecoveryResult extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(result.found ? 'Verified record found' : 'No verified record',
+            Text(
+                result.found
+                    ? context.l10n.verifiedRecordFound
+                    : context.l10n.noVerifiedRecord,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(result.message),
@@ -174,16 +177,24 @@ class _RecoveryResult extends StatelessWidget {
               Text(record.storageLocation),
               Text(record.businessHours),
               const SizedBox(height: 12),
-              Text('Bring: ${record.requiredDocuments.join(', ')}'),
-              Text('Payment: ${record.paymentMethods.join(', ')}'),
+              Text(context.l10n
+                  .bringDocuments(record.requiredDocuments.join(', '))),
+              Text(context.l10n
+                  .paymentMethods(record.paymentMethods.join(', '))),
               Text(
                 record.estimatedFeesCents == null
-                    ? 'Fees: confirm directly'
-                    : 'Estimated fees: '
-                        '\$${(record.estimatedFeesCents! / 100).toStringAsFixed(2)}',
+                    ? context.l10n.feesConfirmDirectly
+                    : context.l10n.estimatedFees(
+                        NumberFormat.simpleCurrency(
+                          locale: context.l10n.localeName,
+                          name: 'USD',
+                        ).format(record.estimatedFeesCents! / 100),
+                      ),
               ),
-              Text('Source: ${record.provenance} · '
-                  '${(record.confidence * 100).round()}% confidence'),
+              Text(context.l10n.sourceConfidence(
+                localizedProvenance(context.l10n, record.provenance),
+                (record.confidence * 100).round(),
+              )),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -192,7 +203,7 @@ class _RecoveryResult extends StatelessWidget {
                     onPressed: () =>
                         launchUrl(Uri.parse('tel:${record.phoneNumber}')),
                     icon: const Icon(Icons.call_outlined),
-                    label: const Text('Call'),
+                    label: Text(context.l10n.call),
                   ),
                   FilledButton.icon(
                     onPressed: () => launchUrl(
@@ -200,7 +211,7 @@ class _RecoveryResult extends StatelessWidget {
                       mode: LaunchMode.externalApplication,
                     ),
                     icon: const Icon(Icons.navigation_outlined),
-                    label: const Text('Navigate'),
+                    label: Text(context.l10n.navigate),
                   ),
                 ],
               ),

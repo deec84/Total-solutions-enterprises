@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:parkshield_mobile/src/core/localization/domain_labels.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/map/data/parking_map_api.dart';
 import 'package:parkshield_mobile/src/features/map/domain/parking_zone.dart';
@@ -100,22 +102,27 @@ class _ParkingMapPageState extends State<ParkingMapPage> {
               ),
             ],
           ),
-          const Positioned(top: 12, left: 12, right: 12, child: _RiskLegend()),
           Positioned(
-            top: 68,
+            top: 12,
             left: 12,
             right: 12,
-            child: _ZoneFilters(
-              selected: _visibleTypes,
-              onChanged: (String type, bool selected) {
-                setState(() {
-                  if (selected) {
-                    _visibleTypes.add(type);
-                  } else {
-                    _visibleTypes.remove(type);
-                  }
-                });
-              },
+            child: Column(
+              children: <Widget>[
+                const _RiskLegend(),
+                const SizedBox(height: 8),
+                _ZoneFilters(
+                  selected: _visibleTypes,
+                  onChanged: (String type, bool selected) {
+                    setState(() {
+                      if (selected) {
+                        _visibleTypes.add(type);
+                      } else {
+                        _visibleTypes.remove(type);
+                      }
+                    });
+                  },
+                ),
+              ],
             ),
           ),
           Positioned(
@@ -124,7 +131,7 @@ class _ParkingMapPageState extends State<ParkingMapPage> {
             child: FloatingActionButton.extended(
               onPressed: _decideAtCenter,
               icon: const Icon(Icons.local_parking),
-              label: const Text('Can I park here?'),
+              label: Text(context.l10n.canIParkHere),
             ),
           ),
           if (_loading) const Center(child: CircularProgressIndicator()),
@@ -176,8 +183,7 @@ class _ParkingMapPageState extends State<ParkingMapPage> {
       );
     } on Exception {
       if (mounted) {
-        setState(() => _error =
-            'Unable to evaluate this location. Read all posted signs.');
+        setState(() => _error = context.l10n.mapEvaluationError);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -205,8 +211,7 @@ class _ParkingMapPageState extends State<ParkingMapPage> {
       });
     } on Exception {
       if (mounted) {
-        setState(
-            () => _error = 'Parking intelligence is temporarily unavailable.');
+        setState(() => _error = context.l10n.mapUnavailable);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -231,15 +236,17 @@ class _RiskLegend extends StatelessWidget {
         elevation: 2,
         borderRadius: BorderRadius.circular(14),
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.94),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 10,
+            runSpacing: 6,
             children: <Widget>[
-              _LegendItem(Color(0xFF178A4A), 'Safe'),
-              _LegendItem(Color(0xFFF2C94C), 'Read signs'),
-              _LegendItem(Color(0xFFF2994A), 'High risk'),
-              _LegendItem(Color(0xFF7A0019), 'Do not park'),
+              _LegendItem(const Color(0xFF178A4A), context.l10n.riskSafe),
+              _LegendItem(const Color(0xFFF2C94C), context.l10n.riskReadSigns),
+              _LegendItem(const Color(0xFFF2994A), context.l10n.riskHigh),
+              _LegendItem(const Color(0xFF7A0019), context.l10n.riskDoNotPark),
             ],
           ),
         ),
@@ -269,35 +276,36 @@ class _ZoneFilters extends StatelessWidget {
   final Set<String> selected;
   final void Function(String type, bool selected) onChanged;
 
-  static const Map<String, String> _labels = <String, String>{
-    'general': 'General',
-    'resident_only': 'Residents',
-    'private_property': 'Private',
-    'commercial': 'Commercial',
-    'towing_hotspot': 'Tow hotspots',
-  };
-
   @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.transparent,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _labels.entries
-                .map(
-                  (MapEntry<String, String> entry) => Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: Text(entry.value),
-                      selected: selected.contains(entry.key),
-                      onSelected: (bool value) => onChanged(entry.key, value),
-                    ),
+  Widget build(BuildContext context) {
+    final Map<String, String> labels = <String, String>{
+      'general': context.l10n.zoneGeneral,
+      'resident_only': context.l10n.zoneResidents,
+      'private_property': context.l10n.zonePrivate,
+      'commercial': context.l10n.zoneCommercial,
+      'towing_hotspot': context.l10n.zoneTowHotspots,
+    };
+    return Material(
+      color: Colors.transparent,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: labels.entries
+              .map(
+                (MapEntry<String, String> entry) => Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: Text(entry.value),
+                    selected: selected.contains(entry.key),
+                    onSelected: (bool value) => onChanged(entry.key, value),
                   ),
-                )
-                .toList(growable: false),
-          ),
+                ),
+              )
+              .toList(growable: false),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _ParkingDecisionSheet extends StatelessWidget {
@@ -309,16 +317,16 @@ class _ParkingDecisionSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final ParkingZone? value = zone;
     if (value == null) {
-      return const SafeArea(
+      return SafeArea(
         child: Padding(
-          padding: EdgeInsets.fromLTRB(24, 8, 24, 32),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.warning_amber_rounded, size: 48),
-              SizedBox(height: 12),
+              const Icon(Icons.warning_amber_rounded, size: 48),
+              const SizedBox(height: 12),
               Text(
-                'No verified data covers this location. Read every posted sign before parking.',
+                context.l10n.noVerifiedLocationData,
                 textAlign: TextAlign.center,
               ),
             ],
@@ -347,35 +355,33 @@ class _ParkingDecisionSheet extends StatelessWidget {
                     children: <Widget>[
                       Text(value.name,
                           style: Theme.of(context).textTheme.titleLarge),
-                      Text(_label(value.riskLevel)),
+                      Text(localizedRiskLevel(context.l10n, value.riskLevel)),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            Text(value.restrictionSummary ??
-                'No restriction summary is available.'),
+            Text(value.restrictionSummary ?? context.l10n.noRestrictionSummary),
             const SizedBox(height: 12),
-            Text('Source: ${_label(value.provenance)}'),
-            Text('Confidence: ${(value.confidence * 100).round()}%'),
+            Text(context.l10n.sourceWithValue(
+              localizedProvenance(context.l10n, value.provenance),
+            )),
+            Text(context.l10n
+                .confidencePercent((value.confidence * 100).round())),
             if (value.averageTowingCostCents case final int cents)
-              Text(
-                  'Estimated towing cost: \$${(cents / 100).toStringAsFixed(2)}'),
+              Text(context.l10n.estimatedTowingCost(
+                '\$${(cents / 100).toStringAsFixed(2)}',
+              )),
             if (value.towingHotspot)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text('Known towing hotspot',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(context.l10n.knownTowingHotspot,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
           ],
         ),
       ),
     );
   }
-
-  String _label(String value) => value
-      .split('_')
-      .map((String word) => '${word[0].toUpperCase()}${word.substring(1)}')
-      .join(' ');
 }

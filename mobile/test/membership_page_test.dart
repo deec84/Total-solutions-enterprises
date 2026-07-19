@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:parkshield_mobile/l10n/generated/app_localizations.dart';
 import 'package:parkshield_mobile/src/features/billing/domain/billing_models.dart';
 import 'package:parkshield_mobile/src/features/billing/presentation/membership_page.dart';
 
@@ -164,6 +165,8 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(body: child),
     ),

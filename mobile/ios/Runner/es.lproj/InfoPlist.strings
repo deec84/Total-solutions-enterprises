@@ -1,0 +1,5 @@
+"CFBundleDisplayName" = "ParkShield AI";
+"NSCameraUsageDescription" = "ParkShield usa la cámara solo cuando eliges escanear un letrero de estacionamiento.";
+"NSPhotoLibraryUsageDescription" = "ParkShield accede únicamente a la foto que seleccionas para interpretar un letrero de estacionamiento.";
+"NSLocationWhenInUseUsageDescription" = "ParkShield usa tu ubicación para evaluar el riesgo de estacionamiento en el lugar donde eliges detenerte.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Cuando habilitas explícitamente las alertas preventivas, ParkShield comprueba el riesgo de estacionamiento en segundo plano y te advierte antes de estacionar.";

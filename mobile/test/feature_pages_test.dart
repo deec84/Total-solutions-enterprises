@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:parkshield_mobile/l10n/generated/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parkshield_mobile/src/features/admin/presentation/admin_page.dart';
 import 'package:parkshield_mobile/src/features/alerts/application/parking_alert_coordinator.dart';
@@ -334,6 +335,8 @@ Future<void> _pumpPage(WidgetTester tester, Widget page) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(body: page),
     ),

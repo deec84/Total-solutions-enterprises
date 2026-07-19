@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkshield_mobile/src/core/localization/localization.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/auth_controller.dart';
 
 class ResetPasswordPage extends StatefulWidget {
@@ -32,7 +33,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Set new password')),
+        appBar: AppBar(title: Text(context.l10n.setNewPassword)),
         body: Form(
           key: _form,
           child: ListView(
@@ -41,10 +42,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               TextFormField(
                 controller: _token,
                 autocorrect: false,
-                decoration: const InputDecoration(labelText: 'Recovery token'),
+                decoration:
+                    InputDecoration(labelText: context.l10n.recoveryToken),
                 validator: (String? value) =>
                     value == null || value.trim().isEmpty
-                        ? 'Enter the recovery token.'
+                        ? context.l10n.enterRecoveryToken
                         : null,
               ),
               const SizedBox(height: 16),
@@ -52,15 +54,16 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 controller: _password,
                 obscureText: true,
                 autofillHints: const <String>[AutofillHints.newPassword],
-                decoration: const InputDecoration(labelText: 'New password'),
+                decoration:
+                    InputDecoration(labelText: context.l10n.newPassword),
                 validator: (String? value) =>
                     value != null && value.length >= 12
                         ? null
-                        : 'Password must contain at least 12 characters.',
+                        : context.l10n.passwordMinimum,
               ),
               const SizedBox(height: 24),
               FilledButton(
-                  onPressed: _submit, child: const Text('Update password')),
+                  onPressed: _submit, child: Text(context.l10n.updatePassword)),
             ],
           ),
         ),
@@ -75,8 +78,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     if (!mounted) return;
     if (changed) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Password updated. Sign in with your new password.')),
+        SnackBar(content: Text(context.l10n.passwordUpdated)),
       );
       Navigator.of(context).popUntil((Route<dynamic> route) => route.isFirst);
     }
