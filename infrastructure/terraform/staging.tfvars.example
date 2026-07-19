@@ -4,6 +4,7 @@ image_uri     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/parkshield-api@sha
 desired_count = 1
 municipal_imports_enabled = false # Change only after source-rights and staging-import approval.
 municipal_max_upload_bytes = 5242880
+billing_enabled = false # Requires approved sandbox products and verification-gateway evidence.
 alarm_email   = "platform-alerts@example.com"
 smtp_host     = "smtp.example.com"
 smtp_username = "replace-with-service-account"

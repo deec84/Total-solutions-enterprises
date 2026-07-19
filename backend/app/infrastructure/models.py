@@ -403,3 +403,56 @@ class MunicipalQuarantineRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (Index("ix_municipal_quarantine_batch", "batch_id"),)
+
+
+class BillingSubscriptionRow(Base):
+    __tablename__ = "billing_subscriptions"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    user_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    subject_reference: Mapped[str] = mapped_column(String(64), nullable=False)
+    platform: Mapped[str] = mapped_column(String(32), nullable=False)
+    product_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    entitlement: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    environment: Mapped[str] = mapped_column(String(16), nullable=False)
+    transaction_reference: Mapped[str] = mapped_column(String(64), nullable=False)
+    original_transaction_reference: Mapped[str] = mapped_column(String(64), nullable=False)
+    purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    auto_renews: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    __table_args__ = (
+        Index("ix_billing_subscriptions_user_verified", "user_id", "verified_at"),
+        Index(
+            "uq_billing_subscription_original",
+            "platform",
+            "environment",
+            "original_transaction_reference",
+            unique=True,
+        ),
+    )
+
+
+class BillingEventRow(Base):
+    __tablename__ = "billing_events"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    subscription_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("billing_subscriptions.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    provider_event_reference: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_billing_events_subscription_occurred", "subscription_id", "occurred_at"),
+    )

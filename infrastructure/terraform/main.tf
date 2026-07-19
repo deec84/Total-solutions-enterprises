@@ -218,6 +218,11 @@ resource "random_password" "jwt" {
   special = false
 }
 
+resource "random_password" "billing_subject" {
+  length  = 64
+  special = false
+}
+
 resource "aws_db_subnet_group" "main" {
   name       = local.name
   subnet_ids = aws_subnet.private[*].id
@@ -298,6 +303,16 @@ resource "aws_secretsmanager_secret" "jwt" {
 resource "aws_secretsmanager_secret_version" "jwt" {
   secret_id     = aws_secretsmanager_secret.jwt.id
   secret_string = random_password.jwt.result
+}
+
+resource "aws_secretsmanager_secret" "billing_subject" {
+  name                    = "${local.name}/billing-subject-secret"
+  recovery_window_in_days = var.environment == "production" ? 30 : 7
+}
+
+resource "aws_secretsmanager_secret_version" "billing_subject" {
+  secret_id     = aws_secretsmanager_secret.billing_subject.id
+  secret_string = random_password.billing_subject.result
 }
 
 resource "aws_kms_key" "media" {
@@ -396,13 +411,14 @@ resource "aws_iam_role_policy" "execution_secrets" {
     Statement = [{
       Effect = "Allow"
       Action = ["secretsmanager:GetSecretValue"]
-      Resource = [
+      Resource = concat([
         aws_secretsmanager_secret.database_url.arn,
         aws_secretsmanager_secret.jwt.arn,
+        aws_secretsmanager_secret.billing_subject.arn,
         var.smtp_password_secret_arn,
         var.push_provider_token_secret_arn,
         var.tow_provider_token_secret_arn,
-      ]
+      ], var.billing_enabled ? [var.billing_gateway_token_secret_arn] : [])
     }]
   })
 }
@@ -506,6 +522,10 @@ resource "aws_ecs_task_definition" "api" {
       { name = "PARKSHIELD_MEDIA_RETENTION_DAYS", value = "30" },
       { name = "PARKSHIELD_MUNICIPAL_IMPORTS_ENABLED", value = tostring(var.municipal_imports_enabled) },
       { name = "PARKSHIELD_MUNICIPAL_MAX_UPLOAD_BYTES", value = tostring(var.municipal_max_upload_bytes) },
+      { name = "PARKSHIELD_BILLING_ENABLED", value = tostring(var.billing_enabled) },
+      { name = "PARKSHIELD_BILLING_GATEWAY_URL", value = var.billing_gateway_url },
+      { name = "PARKSHIELD_APPLE_PREMIUM_PRODUCT_ID", value = var.apple_premium_product_id },
+      { name = "PARKSHIELD_GOOGLE_PREMIUM_PRODUCT_ID", value = var.google_premium_product_id },
       { name = "PARKSHIELD_LOG_LEVEL", value = "INFO" },
       { name = "PARKSHIELD_SMTP_HOST", value = var.smtp_host },
       { name = "PARKSHIELD_SMTP_USERNAME", value = var.smtp_username },
@@ -513,13 +533,16 @@ resource "aws_ecs_task_definition" "api" {
       { name = "PARKSHIELD_PUSH_PROVIDER_URL", value = var.push_provider_url },
       { name = "PARKSHIELD_TOW_PROVIDER_URL", value = var.tow_provider_url },
     ]
-    secrets = [
+    secrets = concat([
       { name = "PARKSHIELD_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
       { name = "PARKSHIELD_JWT_SECRET", valueFrom = aws_secretsmanager_secret.jwt.arn },
+      { name = "PARKSHIELD_BILLING_SUBJECT_SECRET", valueFrom = aws_secretsmanager_secret.billing_subject.arn },
       { name = "PARKSHIELD_SMTP_PASSWORD", valueFrom = var.smtp_password_secret_arn },
       { name = "PARKSHIELD_PUSH_PROVIDER_TOKEN", valueFrom = var.push_provider_token_secret_arn },
       { name = "PARKSHIELD_TOW_PROVIDER_TOKEN", valueFrom = var.tow_provider_token_secret_arn },
-    ]
+      ], var.billing_enabled ? [
+      { name = "PARKSHIELD_BILLING_GATEWAY_TOKEN", valueFrom = var.billing_gateway_token_secret_arn }
+    ] : [])
     linuxParameters = { initProcessEnabled = true }
     logConfiguration = {
       logDriver = "awslogs"

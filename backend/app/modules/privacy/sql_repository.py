@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.models import (
     AlertDeliveryRow,
     AuditEventRow,
+    BillingSubscriptionRow,
     CommunityReportRow,
     DataRightsRequestRow,
     NotificationPreferenceRow,
@@ -138,6 +139,13 @@ class SqlPrivacyRepository:
                 select(DataRightsRequestRow)
                 .where(DataRightsRequestRow.user_id == user_id)
                 .order_by(DataRightsRequestRow.requested_at)
+            )
+        )
+        subscriptions = tuple(
+            await self._session.scalars(
+                select(BillingSubscriptionRow)
+                .where(BillingSubscriptionRow.user_id == user_id)
+                .order_by(BillingSubscriptionRow.verified_at)
             )
         )
         devices = tuple(
@@ -271,6 +279,20 @@ class SqlPrivacyRepository:
                     "completed_at": _iso(item.completed_at),
                 }
                 for item in requests
+            ],
+            "store_subscriptions": [
+                {
+                    "platform": item.platform,
+                    "product_id": item.product_id,
+                    "entitlement": item.entitlement,
+                    "status": item.status,
+                    "environment": item.environment,
+                    "purchased_at": _iso(item.purchased_at),
+                    "expires_at": _iso(item.expires_at),
+                    "verified_at": _iso(item.verified_at),
+                    "auto_renews": item.auto_renews,
+                }
+                for item in subscriptions
             ],
             "security_events": [
                 {"action": item.action, "occurred_at": _iso(item.occurred_at)}

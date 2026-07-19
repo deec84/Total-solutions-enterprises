@@ -89,7 +89,7 @@ Before application Terraform:
 4. Give that role only the scoped ECR/ECS task-registration, run-task, update-service, describe/wait, and required `iam:PassRole` permissions used by `deploy.yml`.
 5. Create the ECR repository with vulnerability scanning, immutable tags where compatible with the workflow, lifecycle policy, and the chosen cross-account promotion/replication policy.
 6. Create or delegate the Route 53 hosted zone and validate the regional ACM certificate for the planned origin hostname.
-7. Create one Secrets Manager secret per SMTP password, push token, and tow token.
+7. Create one Secrets Manager secret per SMTP password, push token, and tow token. If billing is later approved, create a separate verification-gateway token secret; Terraform creates the independent billing-subject HMAC secret itself.
 8. Obtain explicit provider egress CIDRs; Terraform rejects unrestricted `0.0.0.0/0`.
 
 Use AWS SSO locally; do not create long-lived access keys for GitHub.
@@ -156,10 +156,10 @@ Do not run a signed mobile workflow or store submission merely to test whether c
 - [ ] Create `staging`, `production`, and `mobile-production` environments.
 - [ ] Create staging and production AWS accounts and SSO access.
 - [ ] Bootstrap remote Terraform state, OIDC roles, ECR, Route 53, and ACM.
-- [ ] Contract SMTP, push, tow, map, and official-data providers; collect stable egress ranges.
+- [ ] Contract SMTP, push, tow, map, official-data, and—only after business approval—store-verification providers; collect stable egress ranges.
 - [ ] Store provider secrets in AWS Secrets Manager and complete secure tfvars outside Git.
 - [ ] Build the approved bootstrap image, review/apply staging Terraform, and populate GitHub variables.
 - [ ] Run every hosted quality/security/native gate and the staging smoke/restore evidence.
 - [ ] Prepare the isolated production account and approve digest-preserving promotion.
-- [ ] Create Apple/Google store identities and load protected signing material only after release approval.
+- [ ] Accept Apple/Google agreements and decide billing products/pricing/terms before creating products; load protected signing or verification material only after the corresponding approval.
 - [ ] Deploy or release only when every applicable gate is green for the exact commit and artifact digest.

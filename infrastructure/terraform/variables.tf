@@ -43,6 +43,44 @@ variable "municipal_max_upload_bytes" {
   }
 }
 
+variable "billing_enabled" {
+  type        = bool
+  description = "Enable store verification only after store products and the gateway are approved."
+  default     = false
+  validation {
+    condition = !var.billing_enabled || (
+      startswith(var.billing_gateway_url, "https://") &&
+      can(regex("^arn:aws[a-z-]*:secretsmanager:", var.billing_gateway_token_secret_arn)) &&
+      (var.apple_premium_product_id != "" || var.google_premium_product_id != "")
+    )
+    error_message = "billing_enabled requires an HTTPS gateway, token secret ARN, and at least one store product ID"
+  }
+}
+
+variable "billing_gateway_url" {
+  type        = string
+  description = "Exact HTTPS store-verification gateway endpoint; empty while billing is disabled."
+  default     = ""
+}
+
+variable "billing_gateway_token_secret_arn" {
+  type        = string
+  description = "Secrets Manager ARN containing only the verification-gateway bearer token."
+  default     = ""
+}
+
+variable "apple_premium_product_id" {
+  type        = string
+  description = "App Store Connect product identifier approved for the premium entitlement."
+  default     = ""
+}
+
+variable "google_premium_product_id" {
+  type        = string
+  description = "Google Play product identifier approved for the premium entitlement."
+  default     = ""
+}
+
 variable "alarm_email" {
   type        = string
   description = "Optional operational alert email."
