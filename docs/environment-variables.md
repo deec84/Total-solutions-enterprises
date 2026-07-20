@@ -36,6 +36,14 @@ All backend names use the `PARKSHIELD_` prefix.
 | `PARKSHIELD_BILLING_GATEWAY_TOKEN` | When billing enabled | Yes | Dedicated gateway bearer token stored in Secrets Manager. Raw store evidence is sent only to the configured endpoint. |
 | `PARKSHIELD_APPLE_PREMIUM_PRODUCT_ID` | Apple billing | No | App Store Connect product ID approved for the premium entitlement; public catalog metadata, not a secret. |
 | `PARKSHIELD_GOOGLE_PREMIUM_PRODUCT_ID` | Google billing | No | Google Play product ID approved for the premium entitlement; public catalog metadata, not a secret. |
+| `PARKSHIELD_OBSERVABILITY_PROVIDER` | No | No | `disabled`, `memory`, or `opentelemetry`; default `memory`. The OpenTelemetry mode requires an injected SDK adapter. |
+| `PARKSHIELD_OBSERVABILITY_EXPORT_ENABLED` | No | No | Global external-export flag; default `false`. Deployed activation requires the OpenTelemetry provider and an approved HTTPS endpoint. |
+| `PARKSHIELD_OBSERVABILITY_OTLP_ENDPOINT` | When export enabled | No | Exact HTTPS collector endpoint without embedded credentials. Its network range must be explicitly allowlisted. |
+| `PARKSHIELD_OBSERVABILITY_SERVICE_NAME` | No | No | Low-cardinality service identity; default `parkshield-api`. |
+| `PARKSHIELD_PRODUCT_ANALYTICS_ENABLED` | No | No | Deployment-level product-event gate; default `false`. Current per-user consent remains independently mandatory. |
+| `PARKSHIELD_PRODUCT_ANALYTICS_PROVIDER` | No | No | `disabled`, `memory`, or `external`; default `disabled`. External mode fails readiness until an approved adapter is injected. |
+| `PARKSHIELD_PRODUCT_ANALYTICS_SUBJECT_SECRET` | Deployed | Yes | Independent HMAC key used only to pseudonymize analytics subjects. Terraform creates it; never reuse JWT or billing keys. |
+| `PARKSHIELD_PRODUCT_ANALYTICS_RETENTION_DAYS` | No | No | Product-event expiry, constrained to 1–90 days; default `30`. Legal approval may require a lower value. |
 
 When `PARKSHIELD_MEDIA_BUCKET` is absent in local/test mode, photos are validated and hashed but raw bytes are discarded. Staging and production reject missing bucket configuration. The AWS SDK uses the ECS task role; do not create application access-key variables. Objects use bucket-default KMS encryption, private/no-store delivery, SHA-256 integrity metadata, short-lived privileged access, rejection deletion, and a maximum 30-day lifecycle.
 
@@ -59,6 +67,7 @@ Flutter reads these with `String.fromEnvironment`; supply them with `--dart-defi
 |---|---:|---|
 | `PARKSHIELD_API_BASE_URL` | No | Local HTTP is accepted for debug. Release requires an absolute HTTPS URL. |
 | `PARKSHIELD_MAP_TILE_URL` | Public/restricted token possible | HTTPS template containing `{z}`, `{x}`, and `{y}`. Release rejects the public OSM host. Any public map token must be restricted by app identifier, origin, quota, and least privilege. |
+| `PARKSHIELD_PRODUCT_ANALYTICS_ENABLED` | No | Compile-time mobile transmission gate; default `false`. It does not bypass server configuration or current user consent. |
 
 Do not place a server-side map secret in a mobile binary. Mobile tokens are extractable and must be provider-designated public tokens with restrictions.
 
@@ -78,6 +87,12 @@ Terraform values are supplied through a secure out-of-repository `.tfvars` file 
 | `billing_gateway_url` | No | Exact contracted HTTPS verification endpoint; empty while disabled. |
 | `billing_gateway_token_secret_arn` | ARN only | Existing single-value Secrets Manager secret for the gateway token. |
 | `apple_premium_product_id`, `google_premium_product_id` | No | Owner-created store product IDs; at least one is required when billing is enabled. |
+| `observability_provider` | No | Defaults to `memory`; `opentelemetry` requires an injected runtime adapter. |
+| `observability_export_enabled` | No | Defaults to `false`; enable only after collector, egress, staging, cost, and on-call approval. |
+| `observability_otlp_endpoint` | No | Exact HTTPS collector endpoint; empty while export is disabled. |
+| `product_analytics_enabled` | No | Defaults to `false`; activation requires privacy/legal approval and current user consent. |
+| `product_analytics_provider` | No | Defaults to `disabled`; an external provider requires a reviewed adapter and staging deletion/expiry tests. |
+| `product_analytics_retention_days` | No | 1–90 days; default `30`. |
 | `alarm_email` | Personal/operational | Monitored address that confirms the SNS subscription. |
 | `smtp_host`, `smtp_username`, `email_from` | Account metadata | Contracted email provider. |
 | `smtp_password_secret_arn` | ARN only | Existing Secrets Manager secret containing only the SMTP password. |
@@ -91,7 +106,7 @@ Terraform values are supplied through a secure out-of-repository `.tfvars` file 
 | `origin_certificate_arn` | No | Regional ACM certificate ARN covering the origin hostname. |
 | `vpc_cidr` | No | Environment VPC range; default `10.42.0.0/16`; environments must not overlap if peered. |
 
-Terraform generates the RDS password, JWT secret, and independent billing-subject HMAC secret and stores them in Secrets Manager. Terraform state therefore contains sensitive material and must use an encrypted, versioned, access-logged remote backend.
+Terraform generates the RDS password, JWT secret, independent billing-subject HMAC secret, and independent analytics-subject HMAC secret and stores them in Secrets Manager. Terraform state therefore contains sensitive material and must use an encrypted, versioned, access-logged remote backend.
 
 ## GitHub environment variables
 
@@ -113,6 +128,7 @@ Create `mobile-production` with these variables:
 
 - `API_BASE_URL`
 - `MAP_TILE_URL`
+- `PRODUCT_ANALYTICS_ENABLED` (`false` until privacy/provider/staging approval)
 - `APPLE_TEAM_ID`
 
 And these protected secrets:
@@ -136,6 +152,7 @@ And these protected secrets:
 | SMTP, push, and tow tokens | One single-value AWS Secrets Manager secret per provider and environment. |
 | RDS password and JWT key | Terraform-managed AWS Secrets Manager secrets. |
 | Billing subject key and verification token | Terraform-managed subject secret; provider token in one owner-created single-value Secrets Manager secret per environment. |
+| Analytics subject key | Terraform-managed independent Secrets Manager secret; never a mobile or GitHub value. |
 | AWS deployment authentication | GitHub OIDC role; no static keys. |
 | Terraform state | Dedicated encrypted/versioned S3 backend with DynamoDB locking and restricted operators. |
 | Android/Apple signing material | Protected `mobile-production` GitHub environment and organization-controlled offline recovery custody. |

@@ -17,6 +17,14 @@ data "aws_prefix_list" "s3" {
 locals {
   name = "parkshield-${var.environment}"
   azs  = slice(data.aws_availability_zones.available.names, 0, 2)
+  feature_metrics = {
+    authentication   = "Authentications"
+    municipal_import = "MunicipalImports"
+    sign_analysis    = "SignAnalyses"
+    parking_score    = "ParkingScoreQueries"
+    community        = "CommunityEvents"
+    billing          = "BillingVerifications"
+  }
 }
 
 resource "aws_vpc" "main" {
@@ -223,6 +231,11 @@ resource "random_password" "billing_subject" {
   special = false
 }
 
+resource "random_password" "analytics_subject" {
+  length  = 64
+  special = false
+}
+
 resource "aws_db_subnet_group" "main" {
   name       = local.name
   subnet_ids = aws_subnet.private[*].id
@@ -315,6 +328,16 @@ resource "aws_secretsmanager_secret_version" "billing_subject" {
   secret_string = random_password.billing_subject.result
 }
 
+resource "aws_secretsmanager_secret" "analytics_subject" {
+  name                    = "${local.name}/analytics-subject-secret"
+  recovery_window_in_days = var.environment == "production" ? 30 : 7
+}
+
+resource "aws_secretsmanager_secret_version" "analytics_subject" {
+  secret_id     = aws_secretsmanager_secret.analytics_subject.id
+  secret_string = random_password.analytics_subject.result
+}
+
 resource "aws_kms_key" "media" {
   description             = "ParkShield community media and audit exports"
   deletion_window_in_days = 30
@@ -383,6 +406,73 @@ resource "aws_cloudwatch_log_group" "api" {
   retention_in_days = var.environment == "production" ? 90 : 30
 }
 
+resource "aws_cloudwatch_log_metric_filter" "request_volume" {
+  name           = "${local.name}-request-volume"
+  log_group_name = aws_cloudwatch_log_group.api.name
+  pattern        = "{ $.event = \"http_request_completed\" }"
+  metric_transformation {
+    name      = "BackendRequests"
+    namespace = "ParkShield/${var.environment}"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "request_latency" {
+  name           = "${local.name}-request-latency"
+  log_group_name = aws_cloudwatch_log_group.api.name
+  pattern        = "{ $.event = \"http_request_completed\" && $.duration_ms = * }"
+  metric_transformation {
+    name      = "BackendRequestDurationMs"
+    namespace = "ParkShield/${var.environment}"
+    value     = "$.duration_ms"
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "request_errors" {
+  name           = "${local.name}-request-errors"
+  log_group_name = aws_cloudwatch_log_group.api.name
+  pattern        = "{ $.event = \"http_request_completed\" && $.status_code >= 500 }"
+  metric_transformation {
+    name      = "BackendErrors"
+    namespace = "ParkShield/${var.environment}"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "feature_volume" {
+  for_each       = local.feature_metrics
+  name           = "${local.name}-${each.key}"
+  log_group_name = aws_cloudwatch_log_group.api.name
+  pattern        = "{ $.event = \"http_request_completed\" && $.category = \"${each.key}\" }"
+  metric_transformation {
+    name      = each.value
+    namespace = "ParkShield/${var.environment}"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "integration_failures" {
+  name           = "${local.name}-integration-failures"
+  log_group_name = aws_cloudwatch_log_group.api.name
+  pattern        = "{ $.event = \"external_integration_failed\" }"
+  metric_transformation {
+    name      = "IntegrationFailures"
+    namespace = "ParkShield/${var.environment}"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "analytics_rejections" {
+  name           = "${local.name}-analytics-rejections"
+  log_group_name = aws_cloudwatch_log_group.api.name
+  pattern        = "{ $.event = \"product_analytics_rejected\" }"
+  metric_transformation {
+    name      = "ProductAnalyticsRejections"
+    namespace = "ParkShield/${var.environment}"
+    value     = "1"
+  }
+}
+
 resource "aws_ecs_cluster" "main" {
   name = local.name
   setting {
@@ -415,6 +505,7 @@ resource "aws_iam_role_policy" "execution_secrets" {
         aws_secretsmanager_secret.database_url.arn,
         aws_secretsmanager_secret.jwt.arn,
         aws_secretsmanager_secret.billing_subject.arn,
+        aws_secretsmanager_secret.analytics_subject.arn,
         var.smtp_password_secret_arn,
         var.push_provider_token_secret_arn,
         var.tow_provider_token_secret_arn,
@@ -526,6 +617,13 @@ resource "aws_ecs_task_definition" "api" {
       { name = "PARKSHIELD_BILLING_GATEWAY_URL", value = var.billing_gateway_url },
       { name = "PARKSHIELD_APPLE_PREMIUM_PRODUCT_ID", value = var.apple_premium_product_id },
       { name = "PARKSHIELD_GOOGLE_PREMIUM_PRODUCT_ID", value = var.google_premium_product_id },
+      { name = "PARKSHIELD_OBSERVABILITY_PROVIDER", value = var.observability_provider },
+      { name = "PARKSHIELD_OBSERVABILITY_EXPORT_ENABLED", value = tostring(var.observability_export_enabled) },
+      { name = "PARKSHIELD_OBSERVABILITY_OTLP_ENDPOINT", value = var.observability_otlp_endpoint },
+      { name = "PARKSHIELD_OBSERVABILITY_SERVICE_NAME", value = "parkshield-api" },
+      { name = "PARKSHIELD_PRODUCT_ANALYTICS_ENABLED", value = tostring(var.product_analytics_enabled) },
+      { name = "PARKSHIELD_PRODUCT_ANALYTICS_PROVIDER", value = var.product_analytics_provider },
+      { name = "PARKSHIELD_PRODUCT_ANALYTICS_RETENTION_DAYS", value = tostring(var.product_analytics_retention_days) },
       { name = "PARKSHIELD_LOG_LEVEL", value = "INFO" },
       { name = "PARKSHIELD_SMTP_HOST", value = var.smtp_host },
       { name = "PARKSHIELD_SMTP_USERNAME", value = var.smtp_username },
@@ -537,6 +635,7 @@ resource "aws_ecs_task_definition" "api" {
       { name = "PARKSHIELD_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
       { name = "PARKSHIELD_JWT_SECRET", valueFrom = aws_secretsmanager_secret.jwt.arn },
       { name = "PARKSHIELD_BILLING_SUBJECT_SECRET", valueFrom = aws_secretsmanager_secret.billing_subject.arn },
+      { name = "PARKSHIELD_PRODUCT_ANALYTICS_SUBJECT_SECRET", valueFrom = aws_secretsmanager_secret.analytics_subject.arn },
       { name = "PARKSHIELD_SMTP_PASSWORD", valueFrom = var.smtp_password_secret_arn },
       { name = "PARKSHIELD_PUSH_PROVIDER_TOKEN", valueFrom = var.push_provider_token_secret_arn },
       { name = "PARKSHIELD_TOW_PROVIDER_TOKEN", valueFrom = var.tow_provider_token_secret_arn },
@@ -778,6 +877,32 @@ resource "aws_cloudwatch_metric_alarm" "latency" {
   alarm_actions       = [aws_sns_topic.alarms.arn]
 }
 
+resource "aws_cloudwatch_metric_alarm" "integration_failures" {
+  alarm_name          = "${local.name}-integration-failures"
+  namespace           = "ParkShield/${var.environment}"
+  metric_name         = "IntegrationFailures"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 5
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "analytics_rejections" {
+  alarm_name          = "${local.name}-analytics-rejections"
+  namespace           = "ParkShield/${var.environment}"
+  metric_name         = "ProductAnalyticsRejections"
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 2
+  threshold           = 20
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+}
+
 resource "aws_cloudwatch_metric_alarm" "database_cpu" {
   alarm_name          = "${local.name}-database-cpu"
   namespace           = "AWS/RDS"
@@ -886,6 +1011,39 @@ resource "aws_cloudwatch_dashboard" "operations" {
           region = var.aws_region
           view   = "table"
           query  = "SOURCE '${aws_cloudwatch_log_group.api.name}' | fields @timestamp, @message | filter @message like /\\\"status_code\\\":5/ | sort @timestamp desc | limit 50"
+        }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 12
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Product and operational journeys"
+          view   = "timeSeries"
+          region = var.aws_region
+          metrics = [
+            ["ParkShield/${var.environment}", "Authentications", { stat = "Sum" }],
+            [".", "MunicipalImports", { stat = "Sum" }],
+            [".", "SignAnalyses", { stat = "Sum" }],
+            [".", "ParkingScoreQueries", { stat = "Sum" }],
+            [".", "CommunityEvents", { stat = "Sum" }],
+            [".", "BillingVerifications", { stat = "Sum" }],
+          ]
+        }
+      },
+      {
+        type   = "log"
+        x      = 12
+        y      = 12
+        width  = 12
+        height = 6
+        properties = {
+          title  = "Trace and correlation lookup"
+          region = var.aws_region
+          view   = "table"
+          query  = "SOURCE '${aws_cloudwatch_log_group.api.name}' | fields @timestamp, request_id, correlation_id, trace_id, category, status_code, duration_ms | filter ispresent(trace_id) | sort @timestamp desc | limit 50"
         }
       },
     ]

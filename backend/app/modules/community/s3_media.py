@@ -9,6 +9,7 @@ from typing import Protocol, cast
 from urllib.parse import urlparse
 
 from app.modules.community.media import MediaStorageError
+from app.modules.observability.redaction import log_integration_failure
 
 
 class S3Client(Protocol):
@@ -73,6 +74,7 @@ class S3CommunityMediaStore:
         try:
             await asyncio.to_thread(write)
         except Exception as error:
+            log_integration_failure("community_media", "upload", error)
             raise MediaStorageError("community media storage failed") from error
 
     async def delete(self, key: str) -> None:
@@ -85,6 +87,7 @@ class S3CommunityMediaStore:
         try:
             await asyncio.to_thread(remove)
         except Exception as error:
+            log_integration_failure("community_media", "delete", error)
             raise MediaStorageError("community media deletion failed") from error
 
     async def create_read_url(self, key: str, expires_seconds: int) -> str:
@@ -101,6 +104,7 @@ class S3CommunityMediaStore:
         try:
             url = await asyncio.to_thread(sign)
         except Exception as error:
+            log_integration_failure("community_media", "create_read_url", error)
             raise MediaStorageError("community media access failed") from error
         if urlparse(url).scheme != "https":
             raise MediaStorageError("community media access URL is not HTTPS")

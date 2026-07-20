@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Iterator
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
@@ -39,6 +40,18 @@ class RecordingMediaStore:
 class MissingAccountRepository(InMemoryPrivacyRepository):
     async def delete_account(self, user_id: UUID) -> bool:
         return False
+
+
+class RecordingAnalyticsStore:
+    def __init__(self, fail: bool = False) -> None:
+        self.deleted: list[UUID] = []
+        self.fail = fail
+
+    def delete_user(self, user_id: UUID) -> int:
+        if self.fail:
+            raise RuntimeError("analytics provider unavailable")
+        self.deleted.append(user_id)
+        return 1
 
 
 def user(passwords: PasswordManager, role: Role = Role.USER, mfa: bool = False) -> User:
@@ -124,6 +137,47 @@ def test_account_deletion_verifies_credentials_and_deletes_private_media() -> No
         assert store.deleted == [key]
         assert repository.deleted(subject.id)
         assert repository.request(request_id).status is DataRequestStatus.COMPLETED
+
+    asyncio.run(scenario())
+
+
+def test_account_deletion_removes_analytics_and_fails_closed_on_provider_error() -> None:
+    async def scenario() -> None:
+        passwords = PasswordManager()
+        subject = user(passwords)
+        accepted_repository = InMemoryPrivacyRepository()
+        analytics = RecordingAnalyticsStore()
+        privacy = PrivacyService(
+            accepted_repository,
+            passwords,
+            "test-subject-secret",
+            "policy-v1",
+            analytics_store=analytics,
+        )
+        await privacy.delete_account(
+            subject,
+            "a-secure-password",
+            ACCOUNT_DELETION_CONFIRMATION,
+        )
+        assert analytics.deleted == [subject.id]
+        assert accepted_repository.deleted(subject.id)
+
+        rejected_repository = InMemoryPrivacyRepository()
+        rejected_subject = user(passwords)
+        failing = PrivacyService(
+            rejected_repository,
+            passwords,
+            "test-subject-secret",
+            "policy-v1",
+            analytics_store=RecordingAnalyticsStore(fail=True),
+        )
+        with pytest.raises(ExternalDataDeletionError, match="analytics deletion"):
+            await failing.delete_account(
+                rejected_subject,
+                "a-secure-password",
+                ACCOUNT_DELETION_CONFIRMATION,
+            )
+        assert not rejected_repository.deleted(rejected_subject.id)
 
     asyncio.run(scenario())
 
@@ -306,5 +360,7 @@ def test_privacy_api_fails_closed_when_media_storage_is_unavailable() -> None:
 
 
 def test_privacy_service_dependency_builds_sql_adapter() -> None:
-    built = privacy_service(AsyncMock(spec=AsyncSession))
+    application = create_app()
+    request = SimpleNamespace(app=application)
+    built = privacy_service(AsyncMock(spec=AsyncSession), request)  # type: ignore[arg-type]
     assert isinstance(built, PrivacyService)

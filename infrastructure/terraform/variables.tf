@@ -81,6 +81,65 @@ variable "google_premium_product_id" {
   default     = ""
 }
 
+variable "observability_provider" {
+  type        = string
+  description = "Provider-neutral telemetry mode. OpenTelemetry requires an injected SDK/exporter."
+  default     = "memory"
+  validation {
+    condition     = contains(["disabled", "memory", "opentelemetry"], var.observability_provider)
+    error_message = "observability_provider must be disabled, memory, or opentelemetry"
+  }
+}
+
+variable "observability_export_enabled" {
+  type        = bool
+  description = "Enable OTLP export only after the collector and explicit egress are approved."
+  default     = false
+  validation {
+    condition = !var.observability_export_enabled || (
+      var.observability_provider == "opentelemetry" &&
+      startswith(var.observability_otlp_endpoint, "https://")
+    )
+    error_message = "observability export requires the opentelemetry provider and an HTTPS endpoint"
+  }
+}
+
+variable "observability_otlp_endpoint" {
+  type        = string
+  description = "Approved HTTPS OTLP collector endpoint; empty while export is disabled."
+  default     = ""
+}
+
+variable "product_analytics_enabled" {
+  type        = bool
+  description = "Global opt-in analytics gate; individual user consent remains mandatory."
+  default     = false
+  validation {
+    condition     = !var.product_analytics_enabled || var.product_analytics_provider == "external"
+    error_message = "enabled product analytics requires the external provider in deployed environments"
+  }
+}
+
+variable "product_analytics_provider" {
+  type        = string
+  description = "Product analytics sink; external remains unavailable until an adapter is injected."
+  default     = "disabled"
+  validation {
+    condition     = contains(["disabled", "memory", "external"], var.product_analytics_provider)
+    error_message = "product_analytics_provider must be disabled, memory, or external"
+  }
+}
+
+variable "product_analytics_retention_days" {
+  type        = number
+  description = "Maximum product-event retention; legal approval may reduce this value."
+  default     = 30
+  validation {
+    condition     = var.product_analytics_retention_days >= 1 && var.product_analytics_retention_days <= 90
+    error_message = "product_analytics_retention_days must be between 1 and 90"
+  }
+}
+
 variable "alarm_email" {
   type        = string
   description = "Optional operational alert email."

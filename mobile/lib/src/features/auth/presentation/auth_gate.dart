@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:parkshield_mobile/src/core/localization/localization.dart';
+import 'package:parkshield_mobile/src/core/analytics/product_analytics.dart';
 import 'package:parkshield_mobile/src/features/auth/data/auth_api.dart';
 import 'package:parkshield_mobile/src/features/auth/data/secure_token_store.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/auth_controller.dart';
@@ -17,6 +18,8 @@ class AuthGate extends StatefulWidget {
     required this.mapTileUrl,
     this.gateway,
     this.linkStream,
+    this.productAnalyticsEnabled = false,
+    this.analyticsProvider,
     super.key,
   });
 
@@ -24,6 +27,8 @@ class AuthGate extends StatefulWidget {
   final String mapTileUrl;
   final AuthGateway? gateway;
   final Stream<Uri>? linkStream;
+  final bool productAnalyticsEnabled;
+  final ProductAnalyticsProvider? analyticsProvider;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -31,14 +36,24 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   late final AuthController _controller;
+  late final ProductAnalyticsController _analytics;
   StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
+    final TokenStore tokenStore = SecureTokenStore();
+    _analytics = ProductAnalyticsController(
+      enabled: widget.productAnalyticsEnabled,
+      provider: widget.analyticsProvider ??
+          BackendAnalyticsProvider(
+            baseUrl: widget.apiBaseUrl,
+            tokenStore: tokenStore,
+          ),
+    );
     _controller = AuthController(
       widget.gateway ??
-          AuthApi(baseUrl: widget.apiBaseUrl, tokenStore: SecureTokenStore()),
+          AuthApi(baseUrl: widget.apiBaseUrl, tokenStore: tokenStore),
     )..addListener(_rebuild);
     final Stream<Uri> links = widget.linkStream ?? AppLinks().uriLinkStream;
     _linkSubscription = links.listen(_handleLink);
@@ -50,6 +65,7 @@ class _AuthGateState extends State<AuthGate> {
     _controller
       ..removeListener(_rebuild)
       ..dispose();
+    _analytics.close();
     _linkSubscription?.cancel();
     super.dispose();
   }
@@ -91,6 +107,7 @@ class _AuthGateState extends State<AuthGate> {
             userRole: _controller.userRole,
             onLogout: _controller.logout,
             onAccountDeleted: _controller.accountDeleted,
+            analytics: _analytics,
           ),
       };
 }

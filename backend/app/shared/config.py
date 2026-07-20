@@ -44,6 +44,18 @@ class Settings(BaseSettings):
     billing_gateway_token: str | None = None
     apple_premium_product_id: str | None = None
     google_premium_product_id: str | None = None
+    observability_provider: Literal["disabled", "memory", "opentelemetry"] = "memory"
+    observability_export_enabled: bool = False
+    observability_otlp_endpoint: str | None = None
+    observability_service_name: str = Field(
+        default="parkshield-api", min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._-]+$"
+    )
+    product_analytics_enabled: bool = False
+    product_analytics_provider: Literal["disabled", "memory", "external"] = "disabled"
+    product_analytics_subject_secret: str = (
+        "local-analytics-subject-secret-change-before-production"
+    )
+    product_analytics_retention_days: int = Field(default=30, ge=1, le=90)
 
     @model_validator(mode="after")
     def validate_deployed_environment(self) -> Self:
@@ -92,6 +104,27 @@ class Settings(BaseSettings):
                 (self.apple_premium_product_id, self.google_premium_product_id)
             ):
                 errors.append("at least one approved store product ID is required")
+        if self.observability_export_enabled:
+            if self.observability_provider != "opentelemetry":
+                errors.append(
+                    "observability export requires the opentelemetry provider"
+                )
+            endpoint = self.observability_otlp_endpoint
+            if endpoint is None or not endpoint.startswith("https://"):
+                errors.append("observability OTLP endpoint must use HTTPS")
+        if self.product_analytics_enabled:
+            if self.product_analytics_provider != "external":
+                errors.append(
+                    "product analytics requires an external provider in deployed environments"
+                )
+            if (
+                len(self.product_analytics_subject_secret) < 32
+                or "change" in self.product_analytics_subject_secret.casefold()
+            ):
+                errors.append(
+                    "product_analytics_subject_secret must be a non-default secret "
+                    "of at least 32 characters"
+                )
         if errors:
             raise ValueError("; ".join(errors))
         return self

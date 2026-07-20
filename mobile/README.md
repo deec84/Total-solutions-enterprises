@@ -11,7 +11,7 @@ flutter test
 flutter run --dart-define=PARKSHIELD_API_BASE_URL=http://localhost:8000
 ```
 
-Release builds require HTTPS API and contracted map-tile endpoints through `PARKSHIELD_API_BASE_URL` and `PARKSHIELD_MAP_TILE_URL` dart defines. The public OSM tile service is accepted only for development.
+Release builds require HTTPS API and contracted map-tile endpoints through `PARKSHIELD_API_BASE_URL` and `PARKSHIELD_MAP_TILE_URL` dart defines. The public OSM tile service is accepted only for development. `PARKSHIELD_PRODUCT_ANALYTICS_ENABLED` defaults to `false`; enabling it never bypasses the user's current product-analytics consent or the server-side feature flag and schema.
 
 The protected `mobile-release` workflow builds a signed Android App Bundle and iOS IPA. Its `mobile-production` environment stores `ANDROID_KEYSTORE_BASE64`, alias/password values, Apple distribution certificate/password, provisioning profile, keychain password, `APPLE_TEAM_ID`, `API_BASE_URL`, and `MAP_TILE_URL`. Release signing fails closed if credentials are absent; debug keys are never used for release.
 

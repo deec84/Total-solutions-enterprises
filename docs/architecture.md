@@ -8,13 +8,15 @@ The mobile client uses feature-first Clean Architecture. The backend uses presen
 
 ## Bounded contexts
 
-Identity & Access; Parking Regulations; Municipal Data Ingestion; Location Intelligence; Risk Scoring; Sign Understanding; Community Trust; Recovery; Recommendations; Notifications; Privacy & Data Rights; Billing; Administration & Audit.
+Identity & Access; Parking Regulations; Municipal Data Ingestion; Location Intelligence; Risk Scoring; Sign Understanding; Community Trust; Recovery; Recommendations; Notifications; Privacy & Data Rights; Billing; Observability & Analytics; Administration & Audit.
 
 Privacy & Data Rights owns optional-consent history, access/export requests, and account deletion. It depends on identity only through domain data and on private media through a deletion port. It never reads provider credentials, exposes storage keys, or writes another module's tables directly. The SQL adapter assembles an export from authoritative rows and the application service coordinates fail-closed deletion before the user transaction cascades owned records.
 
 Municipal Data Ingestion owns source registration, feed contracts, normalization, import evidence, quarantine metadata, and lineage. Connectors parse supplied bytes without network access. The SQL adapter atomically upserts accepted records into the existing parking contexts while preserving the source and batch identifiers. A source can produce `official` provenance only after an MFA-authenticated administrator records it as official with a public license URL; that technical control does not replace legal or municipal verification, which remains a deployment gate.
 
 Billing owns the provider-neutral product catalog, entitlement decisions, verified subscription state, and append-only reconciliation evidence. Clients can never grant an entitlement: an opaque store payload must be verified by the configured domain-restricted gateway before the ledger changes. Raw receipts and store transaction identifiers are not persisted; HMAC references support idempotency and reconciliation. Account deletion unlinks the user while preserving only pseudonymous records subject to the owner-approved financial retention policy. The backend never invents price or tax information; Apple or Google is the display and transaction authority.
+
+Observability & Analytics owns low-cardinality operational signals, W3C trace propagation, integration-failure classification, and optional product-event contracts. It is composed once per application, depends only on provider ports, and cannot inspect request bodies or domain records. Product events require both a deployment flag and current user consent, use an independent HMAC subject, accept only fixed scalar properties, expire within 90 days, and support subject deletion. Operational health is not conditional on product consent.
 
 ## Trust and AI constraints
 

@@ -5,6 +5,12 @@ desired_count = 2
 municipal_imports_enabled = false # Change only after explicit production approval.
 municipal_max_upload_bytes = 5242880
 billing_enabled = false # Requires explicit product, contract, legal, and production approval.
+observability_provider       = "memory" # External export remains blocked until staging evidence.
+observability_export_enabled = false
+observability_otlp_endpoint  = ""
+product_analytics_enabled    = false # Requires legal approval and an approved production adapter.
+product_analytics_provider   = "disabled"
+product_analytics_retention_days = 30
 vpc_cidr      = "10.52.0.0/16"
 
 alarm_email = "platform-alerts@example.com"

@@ -9,6 +9,7 @@ void main() {
     );
 
     expect(config.validateForRelease, returnsNormally);
+    expect(config.productAnalyticsEnabled, isFalse);
   });
 
   test('release configuration rejects a local API', () {

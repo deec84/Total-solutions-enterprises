@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "title": "ParkShield service and product health",
+  "refresh_seconds": 60,
+  "panels": [
+    {
+      "title": "HTTP golden signals",
+      "metrics": [
+        "http_requests_total",
+        "http_errors_total",
+        "http_request_duration_ms"
+      ],
+      "dimensions": ["environment", "category", "method", "outcome"]
+    },
+    {
+      "title": "Safety-critical journeys",
+      "metrics": [
+        "authentications_total",
+        "municipal_imports_total",
+        "sign_analyses_total",
+        "parking_score_queries_total",
+        "community_events_total",
+        "billing_verifications_total"
+      ],
+      "dimensions": ["environment", "outcome"]
+    },
+    {
+      "title": "External dependencies and privacy controls",
+      "metrics": [
+        "integration_failures_total",
+        "product_analytics_events_total",
+        "product_analytics_rejections_total"
+      ],
+      "dimensions": ["environment", "provider", "reason"]
+    }
+  ]
+}

@@ -79,3 +79,8 @@ class PrivateMediaStore(Protocol):
     @abstractmethod
     async def delete(self, key: str) -> None:
         """Delete one private provider object; implementations must be idempotent."""
+
+
+class PrivateAnalyticsStore(Protocol):
+    def delete_user(self, user_id: UUID) -> int:
+        """Delete optional analytics events for one subject or raise on failure."""

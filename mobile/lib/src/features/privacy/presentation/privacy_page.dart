@@ -13,12 +13,14 @@ class PrivacyPage extends StatefulWidget {
     required this.apiBaseUrl,
     this.gateway,
     this.onAccountDeleted,
+    this.onProductAnalyticsConsentChanged,
     super.key,
   });
 
   final String apiBaseUrl;
   final PrivacyGateway? gateway;
   final VoidCallback? onAccountDeleted;
+  final ValueChanged<bool>? onProductAnalyticsConsentChanged;
 
   @override
   State<PrivacyPage> createState() => _PrivacyPageState();
@@ -158,6 +160,9 @@ class _PrivacyPageState extends State<PrivacyPage> {
       final List<PrivacyConsent> decisions = await _gateway.consents();
       for (final PrivacyConsent item in decisions) {
         _consents[item.purpose] = item.granted;
+        if (item.purpose == ConsentPurpose.productAnalytics) {
+          widget.onProductAnalyticsConsentChanged?.call(item.granted);
+        }
       }
     } on Exception {
       _message = _l10n.privacyLoadError;
@@ -175,6 +180,9 @@ class _PrivacyPageState extends State<PrivacyPage> {
       final PrivacyConsent decision =
           await _gateway.setConsent(purpose, granted);
       _consents[purpose] = decision.granted;
+      if (purpose == ConsentPurpose.productAnalytics) {
+        widget.onProductAnalyticsConsentChanged?.call(decision.granted);
+      }
       _message = _l10n.preferenceSaved(
         _purposeLabel(_l10n, purpose),
       );

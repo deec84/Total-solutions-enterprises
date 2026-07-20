@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 
+from app.modules.observability.redaction import log_integration_failure
 from app.modules.parking.domain import Provenance
 from app.modules.recovery.domain import TowRecord
 
@@ -57,6 +58,7 @@ class HttpTowLookupProvider:
                 raise ValueError("missing tow record")
             return self._record(record)
         except (httpx.HTTPError, KeyError, TypeError, ValueError) as error:
+            log_integration_failure("tow_lookup", "lookup_vehicle", error)
             raise RecoveryProviderUnavailable("towing lookup provider unavailable") from error
 
     @staticmethod

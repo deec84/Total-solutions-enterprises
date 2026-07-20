@@ -17,6 +17,8 @@ This is the exact external dependency inventory. None of these accounts or crede
 | Push gateway | Contracted HTTPS gateway able to route Android/iOS tokens; normally backed by Firebase Cloud Messaging and Apple Push Notification service | Endpoint, bearer token; provider-specific FCM/APNs credentials | Endpoint in tfvars; token in Secrets Manager; provider credentials at gateway | Deployed startup and server-originated push delivery |
 | Tow lookup provider | Contracted municipal/aggregator gateway satisfying the documented JSON contract and privacy terms | HTTPS endpoint, bearer token, fixed egress CIDRs | Endpoint/CIDRs in tfvars; token in Secrets Manager | Towing recovery in staging/production |
 | Map tile provider | Commercial/contracted HTTPS tile service with US coverage, SLA, attribution, quotas, and app-restricted public token if needed | Tile template and restricted public token | `MAP_TILE_URL` GitHub variable | Release mobile builds |
+| Monitoring/telemetry collector | Approved OpenTelemetry-compatible collector or monitoring vendor with DPA, US data residency, deletion/retention support, sampling limits, fixed HTTPS endpoint, and fixed egress ranges | Environment-specific endpoint and provider credential if required | Endpoint in secure tfvars; credential in Secrets Manager or collector workload identity | External trace/metric export and monitored staging evidence |
+| Product analytics provider | Approved privacy-capable sink implementing the product-event, subject-deletion, and expiry contracts | Provider endpoint/workload identity after legal approval | Secrets Manager/workload identity; never mobile source | Durable product analytics activation |
 | Store verification gateway | Contracted or organization-owned gateway that validates Apple/Google signed evidence, app account tokens, product IDs, status, expiry, revocation, and environment | Fixed HTTPS endpoint, bearer token, fixed egress CIDRs | Endpoint/CIDRs in tfvars; token in Secrets Manager | Enabling billing or granting paid entitlements |
 | Official parking data | Municipal regulations, zones, tow records, facility data, update schedule, usage rights, provenance owner, expiry policy | Owner-approved data grant and feed endpoint; API credential only if the future approved fetch adapter needs one | Provider vault/data pipeline, not Git | Enabling the prepared import source as official, trustworthy launch data, and geographic expansion |
 | Apple Developer Program | Organization team, bundle ID `ai.parkshield.parkshieldMobile`, App Store Connect app and subscription products, agreements/tax/banking, StoreKit server notifications, APNs capability if selected, distribution certificate, provisioning profile | Team/product IDs, server-verification material, `.p12`, password, `.mobileprovision` | Secrets Manager / protected GitHub environment plus offline recovery custody | Real native purchases, signed iOS release, and App Store submission |
@@ -46,10 +48,12 @@ For each of `staging` and `production`, collect:
 7. Push endpoint, token-secret ARN, and fixed network range.
 8. Tow endpoint, token-secret ARN, and fixed network range.
 9. When billing is approved: verification endpoint, token-secret ARN, fixed network range, and exact Apple/Google product IDs.
-10. Operational alarm email and confirmed SNS subscription.
-11. A reviewed, out-of-repository `.tfvars` file containing only approved values and secret ARNs.
+10. When telemetry export is approved: exact HTTPS collector, fixed egress CIDRs, data-processing terms, sampling/cardinality budget, and environment-owned credential mechanism.
+11. When durable analytics is approved: provider adapter, DPA, retention decision, subject-deletion/expiry evidence, and cost limits.
+12. Operational alarm email and confirmed SNS subscription.
+13. A reviewed, out-of-repository `.tfvars` file containing only approved values and secret ARNs.
 
-For `mobile-production`, collect the three variables and eight secrets listed in `docs/environment-variables.md`, plus contracted store metadata and privacy URLs.
+For `mobile-production`, collect the four variables and eight secrets listed in `docs/environment-variables.md`, plus contracted store metadata and privacy URLs.
 
 ## Explicitly blocked tasks
 
@@ -64,6 +68,7 @@ For `mobile-production`, collect the three variables and eight secrets listed in
 - Producing signed Android/iOS artifacts, store submissions, or releases.
 - Approving the production privacy-policy version, jurisdiction-specific deletion exceptions, and final retention schedule.
 - Approving Spanish product/legal copy, completing physical-device VoiceOver/TalkBack journeys, and approving localized store-listing assets.
+- Selecting/contracting monitoring and product-analytics providers, approving their data-processing terms and retention, supplying exact endpoints/egress/credentials, validating deletion and expiry in staging, and running the on-call exercise.
 - Authorizing staging or production promotion.
 
 These are real gates. They must remain blocked until the named owner supplies the corresponding account, credential, contract, or approval.
