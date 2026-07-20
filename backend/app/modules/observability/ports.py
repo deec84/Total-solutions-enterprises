@@ -1,77 +1,107 @@
 """Provider-neutral ports for metrics, tracing, and product analytics."""
 
+from abc import abstractmethod
 from collections.abc import Mapping
 from typing import Protocol
 
-from app.modules.observability.domain import ProductEvent, SpanRecord, TraceContext
+from app.modules.observability.domain import ProductEvent, TraceContext
 
 Scalar = str | int | float | bool
 
 
 class MetricsPort(Protocol):
     @property
-    def ready(self) -> bool: ...
+    @abstractmethod
+    def ready(self) -> bool:
+        raise NotImplementedError
 
-    def increment(self, name: str, labels: Mapping[str, str] | None = None) -> None: ...
+    @abstractmethod
+    def increment(self, name: str, labels: Mapping[str, str] | None = None) -> None:
+        raise NotImplementedError
 
+    @abstractmethod
     def observe(
         self, name: str, value: float, labels: Mapping[str, str] | None = None
-    ) -> None: ...
+    ) -> None:
+        raise NotImplementedError
 
 
 class SpanPort(Protocol):
     @property
-    def context(self) -> TraceContext: ...
+    @abstractmethod
+    def context(self) -> TraceContext:
+        raise NotImplementedError
 
-    def end(self, status: str, error_type: str | None = None) -> None: ...
+    @abstractmethod
+    def end(self, status: str, error_type: str | None = None) -> None:
+        raise NotImplementedError
 
 
 class TracingPort(Protocol):
     @property
-    def ready(self) -> bool: ...
+    @abstractmethod
+    def ready(self) -> bool:
+        raise NotImplementedError
 
+    @abstractmethod
     def start_span(
         self,
         name: str,
         context: TraceContext,
         attributes: Mapping[str, Scalar],
-    ) -> SpanPort: ...
+    ) -> SpanPort:
+        raise NotImplementedError
 
 
 class AnalyticsProvider(Protocol):
     @property
-    def ready(self) -> bool: ...
+    @abstractmethod
+    def ready(self) -> bool:
+        raise NotImplementedError
 
-    def publish(self, event: ProductEvent) -> None: ...
+    @abstractmethod
+    def publish(self, event: ProductEvent) -> None:
+        raise NotImplementedError
 
-    def delete_subject(self, subject_reference: str) -> int: ...
+    @abstractmethod
+    def delete_subject(self, subject_reference: str) -> int:
+        raise NotImplementedError
 
-    def purge_expired(self) -> int: ...
+    @abstractmethod
+    def purge_expired(self) -> int:
+        raise NotImplementedError
 
 
 class OpenTelemetrySpanLike(Protocol):
     @property
-    def trace_id(self) -> str: ...
+    @abstractmethod
+    def trace_id(self) -> str:
+        raise NotImplementedError
 
     @property
-    def span_id(self) -> str: ...
+    @abstractmethod
+    def span_id(self) -> str:
+        raise NotImplementedError
 
     @property
-    def sampled(self) -> bool: ...
+    @abstractmethod
+    def sampled(self) -> bool:
+        raise NotImplementedError
 
-    def set_attribute(self, key: str, value: Scalar) -> None: ...
+    @abstractmethod
+    def set_attribute(self, key: str, value: Scalar) -> None:
+        raise NotImplementedError
 
-    def end(self) -> None: ...
+    @abstractmethod
+    def end(self) -> None:
+        raise NotImplementedError
 
 
 class OpenTelemetryTracerLike(Protocol):
     """Bridge surface implemented by an environment-owned OpenTelemetry SDK adapter."""
 
+    @abstractmethod
     def start_span(
         self, name: str, parent_traceparent: str | None
-    ) -> OpenTelemetrySpanLike: ...
-
-
-class TraceRecorder(Protocol):
-    @property
-    def spans(self) -> tuple[SpanRecord, ...]: ...
+    ) -> OpenTelemetrySpanLike:
+        raise NotImplementedError
