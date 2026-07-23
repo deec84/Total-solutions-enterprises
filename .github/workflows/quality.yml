@@ -69,7 +69,7 @@ jobs:
         working-directory: backend
       - run: pytest tests integration_tests --cov-report=xml
         working-directory: backend
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: backend-coverage
           path: backend/coverage.xml
@@ -104,7 +104,7 @@ jobs:
         working-directory: mobile
       - name: Enforce Flutter line coverage (75%)
         run: scripts/check-flutter-coverage.sh mobile/coverage/lcov.info 75
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: flutter-coverage
           path: mobile/coverage/lcov.info
