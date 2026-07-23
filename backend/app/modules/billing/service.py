@@ -18,6 +18,7 @@ from app.modules.billing.domain import (
     SubscriptionStatus,
     VerifiedPurchase,
 )
+from app.modules.observability.redaction import log_integration_failure
 
 
 class BillingError(ValueError):
@@ -112,9 +113,11 @@ class BillingService:
             verified = await self._verifier.verify(
                 PurchaseVerificationRequest(user_id, platform, product_id, signed_payload)
             )
-        except BillingUnavailable:
+        except BillingUnavailable as error:
+            log_integration_failure("billing_verifier", "verify_purchase", error)
             raise
         except Exception as error:
+            log_integration_failure("billing_verifier", "verify_purchase", error)
             raise BillingUnavailable("store purchase verification is unavailable") from error
         self._validate_verified(verified, user_id, product)
         subscription = self._subscription(verified)

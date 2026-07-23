@@ -67,20 +67,25 @@ void main() {
       (WidgetTester tester) async {
     final FakePrivacyGateway gateway = FakePrivacyGateway();
     bool accountDeleted = false;
+    bool? analyticsConsent;
     await _pump(
       tester,
       PrivacyPage(
         apiBaseUrl: 'https://api.test',
         gateway: gateway,
         onAccountDeleted: () => accountDeleted = true,
+        onProductAnalyticsConsentChanged: (bool granted) =>
+            analyticsConsent = granted,
       ),
     );
 
     expect(find.text('Privacy and your data'), findsOneWidget);
+    expect(analyticsConsent, isFalse);
     await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
     expect(find.text('Product analytics preference saved.'), findsOneWidget);
     expect(gateway.consentUpdates, 1);
+    expect(analyticsConsent, isTrue);
 
     await tester.tap(find.text('Create data export'));
     await tester.pumpAndSettle();

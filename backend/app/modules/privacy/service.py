@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 from app.modules.identity.domain import Role, User
 from app.modules.identity.mfa import verify_totp
 from app.modules.identity.security import PasswordManager
+from app.modules.observability.redaction import log_integration_failure
 from app.modules.privacy.domain import (
     ConsentDecision,
     ConsentPurpose,
@@ -16,6 +17,7 @@ from app.modules.privacy.domain import (
     DataRequestType,
     DataRightsRequest,
     PrivacyRepository,
+    PrivateAnalyticsStore,
     PrivateMediaStore,
 )
 
@@ -46,12 +48,14 @@ class PrivacyService:
         subject_secret: str,
         policy_version: str,
         media_store: PrivateMediaStore | None = None,
+        analytics_store: PrivateAnalyticsStore | None = None,
     ) -> None:
         self._repository = repository
         self._passwords = passwords
         self._subject_secret = subject_secret
         self._policy_version = policy_version
         self._media_store = media_store
+        self._analytics_store = analytics_store
 
     async def consents(self, user_id: UUID) -> tuple[ConsentDecision, ...]:
         return await self._repository.latest_consents(user_id)
@@ -113,9 +117,20 @@ class PrivacyService:
                 try:
                     await media_store.delete(key)
                 except Exception as error:
+                    log_integration_failure("community_media", "delete_for_user", error)
                     raise ExternalDataDeletionError(
                         "private media deletion could not be confirmed; account was not deleted"
                     ) from error
+
+        if self._analytics_store is not None:
+            try:
+                self._analytics_store.delete_user(user.id)
+            except Exception as error:
+                log_integration_failure("product_analytics", "delete_for_user", error)
+                raise ExternalDataDeletionError(
+                    "product analytics deletion could not be confirmed; "
+                    "account was not deleted"
+                ) from error
 
         completed_at = datetime.now(UTC)
         await self._repository.complete_request(request.id, completed_at)

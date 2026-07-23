@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parkshield_mobile/l10n/generated/app_localizations.dart';
 import 'package:parkshield_mobile/src/core/config/app_config.dart';
+import 'package:parkshield_mobile/src/core/analytics/product_analytics.dart';
 import 'package:parkshield_mobile/src/features/auth/presentation/auth_gate.dart';
 import 'package:parkshield_mobile/src/features/auth/domain/auth_session.dart';
 
@@ -11,12 +12,14 @@ class ParkShieldApp extends StatelessWidget {
     this.authGateway,
     this.linkStream,
     this.locale,
+    this.analyticsProvider,
   });
 
   final AppConfig config;
   final AuthGateway? authGateway;
   final Stream<Uri>? linkStream;
   final Locale? locale;
+  final ProductAnalyticsProvider? analyticsProvider;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -35,6 +38,8 @@ class ParkShieldApp extends StatelessWidget {
           mapTileUrl: config.mapTileUrl,
           gateway: authGateway,
           linkStream: linkStream,
+          productAnalyticsEnabled: config.productAnalyticsEnabled,
+          analyticsProvider: analyticsProvider,
         ),
       );
 }

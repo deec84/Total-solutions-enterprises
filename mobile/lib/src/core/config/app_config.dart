@@ -2,6 +2,7 @@ class AppConfig {
   const AppConfig({
     required this.apiBaseUrl,
     this.mapTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    this.productAnalyticsEnabled = false,
   });
 
   const AppConfig.fromEnvironment()
@@ -12,10 +13,15 @@ class AppConfig {
         mapTileUrl = const String.fromEnvironment(
           'PARKSHIELD_MAP_TILE_URL',
           defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        ),
+        productAnalyticsEnabled = const bool.fromEnvironment(
+          'PARKSHIELD_PRODUCT_ANALYTICS_ENABLED',
+          defaultValue: false,
         );
 
   final String apiBaseUrl;
   final String mapTileUrl;
+  final bool productAnalyticsEnabled;
 
   void validateForRelease() {
     final apiUri = Uri.tryParse(apiBaseUrl);

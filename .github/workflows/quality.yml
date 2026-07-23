@@ -21,6 +21,8 @@ jobs:
         run: scripts/check-repository-readiness.sh
       - name: Verify localization catalogs and native metadata
         run: python3 scripts/check-mobile-localizations.py
+      - name: Verify observability, privacy-dimension, and SLO contracts
+        run: python3 scripts/check-observability-contracts.py
 
   backend:
     runs-on: ubuntu-latest

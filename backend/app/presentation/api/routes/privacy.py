@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.database import database_session
@@ -30,6 +30,7 @@ router = APIRouter()
 
 def privacy_service(
     session: Annotated[AsyncSession, Depends(database_session)],
+    request: Request,
 ) -> PrivacyService:
     settings = get_settings()
     return PrivacyService(
@@ -38,6 +39,7 @@ def privacy_service(
         settings.jwt_secret,
         settings.privacy_policy_version,
         community_media_store(),
+        request.app.state.observability.analytics,
     )
 
 
@@ -90,6 +92,7 @@ async def export_account_data(
 @router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_account(
     command: AccountDeletionCommand,
+    request: Request,
     response: Response,
     user: Annotated[User, Depends(current_user)],
     service: Annotated[PrivacyService, Depends(privacy_service)],

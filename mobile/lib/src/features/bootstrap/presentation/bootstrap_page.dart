@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:parkshield_mobile/src/core/localization/localization.dart';
+import 'package:parkshield_mobile/src/core/analytics/product_analytics.dart';
 import 'package:parkshield_mobile/src/features/admin/presentation/admin_page.dart';
 import 'package:parkshield_mobile/src/features/alerts/presentation/alerts_page.dart';
 import 'package:parkshield_mobile/src/features/community/presentation/community_report_page.dart';
@@ -17,6 +18,7 @@ class BootstrapPage extends StatefulWidget {
     required this.apiBaseUrl,
     required this.mapTileUrl,
     required this.userRole,
+    required this.analytics,
     this.onLogout,
     this.onAccountDeleted,
     super.key,
@@ -25,6 +27,7 @@ class BootstrapPage extends StatefulWidget {
   final String apiBaseUrl;
   final String mapTileUrl;
   final String userRole;
+  final ProductAnalyticsController analytics;
   final Future<void> Function()? onLogout;
   final VoidCallback? onAccountDeleted;
 
@@ -71,6 +74,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
       PrivacyPage(
         apiBaseUrl: widget.apiBaseUrl,
         onAccountDeleted: widget.onAccountDeleted,
+        onProductAnalyticsConsentChanged: widget.analytics.updateConsent,
       ),
       MembershipPage(apiBaseUrl: widget.apiBaseUrl),
       if (isPrivileged) AdminPage(apiBaseUrl: widget.apiBaseUrl),
@@ -162,6 +166,10 @@ class _BootstrapPageState extends State<BootstrapPage> {
         onDestinationSelected: (int value) {
           Navigator.of(context).pop();
           setState(() => _index = value);
+          widget.analytics.track(
+            ProductEvent.screenViewed,
+            <String, Object>{'screen': _analyticsScreen(value, isPrivileged)},
+          );
         },
         children: <Widget>[
           const Padding(
@@ -173,5 +181,21 @@ class _BootstrapPageState extends State<BootstrapPage> {
         ],
       ),
     );
+  }
+
+  String _analyticsScreen(int index, bool isPrivileged) {
+    const List<String> screens = <String>[
+      'map',
+      'assistant',
+      'recommendations',
+      'sign_scanner',
+      'community_report',
+      'alerts',
+      'tow_recovery',
+      'privacy',
+      'membership',
+    ];
+    if (isPrivileged && index == screens.length) return 'administration';
+    return screens[index];
   }
 }

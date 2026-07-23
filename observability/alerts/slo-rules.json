@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "rules": [
+    {
+      "name": "api_availability",
+      "sli": "successful non-health requests / total non-health requests",
+      "objective": 0.999,
+      "window_days": 30,
+      "page": "14.4x burn for 1 hour and 6x burn for 6 hours",
+      "runbook": "docs/runbooks/observability-incident-triage.md"
+    },
+    {
+      "name": "parking_decision_latency",
+      "sli": "parking decision requests completed under 500 ms",
+      "objective": 0.95,
+      "window_days": 30,
+      "page": "p95 above 1000 ms for 5 minutes",
+      "runbook": "docs/runbooks/observability-incident-triage.md"
+    },
+    {
+      "name": "readiness",
+      "sli": "ready probes returning HTTP 200",
+      "objective": 0.999,
+      "window_days": 30,
+      "page": "healthy targets below one for 3 minutes",
+      "runbook": "docs/runbooks/observability-incident-triage.md"
+    },
+    {
+      "name": "external_integrations",
+      "sli": "provider operations without a classified integration failure",
+      "objective": 0.99,
+      "window_days": 30,
+      "page": "five failures in two consecutive 5-minute windows",
+      "runbook": "docs/runbooks/observability-incident-triage.md"
+    }
+  ]
+}

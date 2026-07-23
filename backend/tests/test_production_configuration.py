@@ -61,6 +61,36 @@ def deployed_settings(**overrides: object) -> dict[str, object]:
             },
             "store product ID",
         ),
+        (
+            {"observability_export_enabled": True},
+            "observability export requires",
+        ),
+        (
+            {
+                "observability_export_enabled": True,
+                "observability_provider": "opentelemetry",
+                "observability_otlp_endpoint": "http://collector.example.net",
+            },
+            "observability OTLP endpoint",
+        ),
+        (
+            {"product_analytics_enabled": True},
+            "product analytics requires",
+        ),
+        (
+            {
+                "product_analytics_enabled": True,
+                "product_analytics_provider": "memory",
+            },
+            "external provider",
+        ),
+        (
+            {
+                "product_analytics_enabled": True,
+                "product_analytics_provider": "external",
+            },
+            "product_analytics_subject_secret",
+        ),
     ],
 )
 def test_deployed_configuration_fails_fast(
@@ -88,6 +118,22 @@ def test_deployed_configuration_accepts_disabled_billing_and_valid_providers() -
     assert enabled.billing_enabled is True
 
 
+def test_deployed_configuration_accepts_approved_observability_settings() -> None:
+    settings = Settings(
+        **deployed_settings(
+            observability_export_enabled=True,
+            observability_provider="opentelemetry",
+            observability_otlp_endpoint="https://collector.example.net/v1/traces",
+            product_analytics_enabled=True,
+            product_analytics_provider="external",
+            product_analytics_subject_secret="c" * 64,
+        )
+    )
+
+    assert settings.observability_export_enabled is True
+    assert settings.product_analytics_enabled is True
+
+
 def test_access_log_is_structured_and_excludes_query_and_headers(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -106,7 +152,8 @@ def test_access_log_is_structured_and_excludes_query_and_headers(
     assert response.status_code == 200
     assert payload["request_id"] == "observability-1"
     assert payload["status_code"] == 200
-    assert payload["path"] == "/api/v1/health/live"
+    assert payload["category"] == "health"
+    assert "path" not in payload
     assert "must-not-be-logged" not in record.message
 
 

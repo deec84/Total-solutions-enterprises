@@ -2,7 +2,7 @@
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -28,11 +28,22 @@ async def check_database(
         ) from error
 
 
+def check_observability(request: Request) -> None:
+    runtime = request.app.state.observability
+    if not runtime.ready:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "observability provider unavailable"
+        )
+
+
 @router.get("/live", response_model=HealthResponse, summary="Process liveness")
 async def liveness() -> HealthResponse:
     return HealthResponse()
 
 
 @router.get("/ready", response_model=HealthResponse, summary="Service readiness")
-async def readiness(_: Annotated[None, Depends(check_database)]) -> HealthResponse:
+async def readiness(
+    _: Annotated[None, Depends(check_database)],
+    __: Annotated[None, Depends(check_observability)],
+) -> HealthResponse:
     return HealthResponse()

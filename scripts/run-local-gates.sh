@@ -57,6 +57,7 @@ export PATH="$TOOLCHAINS/bin:$TOOLCHAINS/flutter/bin:$PATH"
 printf '\nRepository onboarding and secret-exclusion gate\n'
 "$REPOSITORY_ROOT/scripts/check-repository-readiness.sh"
 "$PYTHON" "$REPOSITORY_ROOT/scripts/check-mobile-localizations.py"
+"$PYTHON" "$REPOSITORY_ROOT/scripts/check-observability-contracts.py"
 
 printf '\nBackend static, security, authentication, and coverage gates\n'
 cd "$REPOSITORY_ROOT/backend"
