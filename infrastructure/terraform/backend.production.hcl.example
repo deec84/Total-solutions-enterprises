@@ -1,0 +1,6 @@
+# Copy this file outside the repository and replace every placeholder.
+# Production state must use a different AWS account, bucket, and KMS key.
+bucket     = "REPLACE_PRODUCTION_STATE_BUCKET"
+key        = "parkshield/production/core.tfstate"
+region     = "REPLACE_AWS_REGION"
+kms_key_id = "REPLACE_PRODUCTION_STATE_KMS_KEY_ARN"

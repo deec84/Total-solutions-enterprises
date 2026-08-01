@@ -4,27 +4,90 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    rebase-strategy: auto
+    labels: [dependencies]
+    groups:
+      backend-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Flutter remains maintained only as the transitional client until the
+  # separately reviewed Kotlin/Compose and Swift/SwiftUI migration completes.
   - package-ecosystem: pub
     directory: /mobile
     schedule:
       interval: weekly
+      day: monday
+      time: "06:15"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    rebase-strategy: auto
+    labels: [dependencies]
+    groups:
+      legacy-flutter-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    rebase-strategy: auto
+    labels: [dependencies]
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
   - package-ecosystem: docker
     directory: /backend
     schedule:
       interval: weekly
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
+      day: monday
+      time: "06:45"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    rebase-strategy: auto
+    labels: [dependencies]
+    groups:
+      backend-container-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
   - package-ecosystem: terraform
     directory: /infrastructure/terraform
     schedule:
       interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    rebase-strategy: auto
+    labels: [dependencies]
+    groups:
+      terraform-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
   - package-ecosystem: gradle
     directory: /mobile/android
     schedule:
       interval: weekly
+      day: monday
+      time: "07:15"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    rebase-strategy: auto
+    labels: [dependencies]
+    groups:
+      legacy-android-wrapper-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]

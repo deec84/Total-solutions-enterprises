@@ -59,9 +59,9 @@ These values configure the local container topology; they are not backend `Setti
 | `PARKSHIELD_POSTGRES_USER` | No | Local database role; default `parkshield`. |
 | `PARKSHIELD_POSTGRES_PASSWORD` | Yes | Local database password. It must match the password embedded in `PARKSHIELD_DATABASE_URL`. |
 
-## Flutter compile-time definitions
+## Transitional Flutter compile-time definitions
 
-Flutter reads these with `String.fromEnvironment`; supply them with `--dart-define` at build time.
+The current Flutter client reads these with `String.fromEnvironment`; supply them with `--dart-define` at build time. Flutter is the maintained transition baseline, not the final mobile architecture. Kotlin/Compose and Swift/SwiftUI configuration contracts will replace these definitions through the migration gates in `adr/0002-native-mobile-target.md`.
 
 | Definition | Sensitive | Requirement |
 |---|---:|---|
@@ -114,6 +114,7 @@ Create both `staging` and `production` environments with these non-secret variab
 
 | Variable | Value source |
 |---|---|
+| `AWS_ACCOUNT_ID` | The exact 12-digit ID of the environment's isolated AWS account. The workflow verifies the role and ECR repository against it. |
 | `AWS_DEPLOY_ROLE_ARN` | Least-privilege GitHub OIDC deployment role in that AWS account. |
 | `AWS_REGION` | Terraform `aws_region`. |
 | `ECR_REPOSITORY` | Full ECR repository URL without a tag. |
@@ -154,6 +155,6 @@ And these protected secrets:
 | Billing subject key and verification token | Terraform-managed subject secret; provider token in one owner-created single-value Secrets Manager secret per environment. |
 | Analytics subject key | Terraform-managed independent Secrets Manager secret; never a mobile or GitHub value. |
 | AWS deployment authentication | GitHub OIDC role; no static keys. |
-| Terraform state | Dedicated encrypted/versioned S3 backend with DynamoDB locking and restricted operators. |
+| Terraform state | Dedicated encrypted/versioned SSE-KMS S3 backend with native `.tflock` locking and restricted operators. |
 | Android/Apple signing material | Protected `mobile-production` GitHub environment and organization-controlled offline recovery custody. |
 | Public mobile map token | GitHub environment variable with provider-side application and quota restrictions. |

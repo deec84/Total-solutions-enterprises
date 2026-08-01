@@ -16,7 +16,10 @@ docs/environment-variables.md
 docs/external-services.md
 docs/installation.md
 docs/repository-onboarding.md
+docs/github-hardening.md
 infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/backend.staging.hcl.example
+infrastructure/terraform/backend.production.hcl.example
 infrastructure/terraform/production.tfvars.example
 mobile/android/gradle/wrapper/gradle-wrapper.jar
 mobile/android/gradle/wrapper/gradle-wrapper.properties
@@ -29,6 +32,7 @@ mobile/ios/Runner/es.lproj/InfoPlist.strings
 mobile/lib/l10n/app_en.arb
 mobile/lib/l10n/app_es.arb
 mobile/pubspec.lock
+scripts/check-github-hardening.py
 '
 
 for relative_path in $required_files; do
@@ -125,5 +129,7 @@ while IFS= read -r relative_path; do
     exit 1
   fi
 done
+
+python3 "$REPOSITORY_ROOT/scripts/check-github-hardening.py"
 
 printf 'Repository readiness checks passed.\n'

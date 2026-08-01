@@ -2,6 +2,8 @@
 
 Each module is implemented, locally verified where the environment permits, tested, and documented before the next. When a native/cloud tool is unavailable locally, its required non-optional CI gate is configured before implementation continues; production promotion still requires every hosted and staging gate to pass.
 
+Phases 1–19 record the implemented backend and transitional Flutter baseline. The definitive mobile architecture is Android with Kotlin/Jetpack Compose and iOS with Swift/SwiftUI. Native migration is a separate, not-yet-started delivery program governed by ADR 0002; no historical phase is reclassified as native-complete, and Flutter remains supported until native parity and cutover gates pass.
+
 ## 1. Project structure — implemented
 
 Deliverables: monorepo, API/mobile shells, local PostgreSQL, container hardening baseline, architecture and quality gates. Exit: API tests, lint/type checks, Flutter analysis/tests, image build, Compose health check, and secret scan pass.
@@ -77,3 +79,7 @@ Generated Flutter localization catalogs with complete English/Spanish key parity
 ## 19. Observability and privacy-safe analytics — implemented; hosted/provider/privacy gates required
 
 Structured low-cardinality JSON logs, request/correlation IDs, W3C trace context, provider-neutral metrics and OpenTelemetry-compatible tracing ports, bounded local adapters, readiness integration, CloudWatch/dashboard-as-code definitions, SLI/SLO alerts, privacy-filtered external-failure records, and consent-gated pseudonymous product events with retention and deletion. Backend and mobile reject passwords, tokens, receipts, precise locations, content, and unknown fields before publication. Exit: unit, API, regression, privacy-schema, Terraform, security, coverage, native build, and exact-commit hosted gates pass; real export and durable analytics remain blocked on vendor/DPA approval, approved retention, exact egress, environment-owned credentials, staging deletion/expiry/cardinality/cost evidence, and an on-call exercise.
+
+## Native mobile migration program — planned, not started
+
+The ordered migration from Flutter to Kotlin/Compose and Swift/SwiftUI is defined in ADR 0002. It is intentionally not declared as a completed product phase. Each native vertical slice must reuse the versioned REST/OpenAPI contracts, keep server-authoritative safety and entitlement decisions, and pass platform-specific unit, UI, accessibility, privacy, security, performance, and physical-device gates before traffic or store distribution moves away from Flutter.

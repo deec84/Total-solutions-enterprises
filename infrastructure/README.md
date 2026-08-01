@@ -4,17 +4,13 @@ Terraform provisions isolated `staging` and `production` AWS environments. The s
 
 ## State bootstrap
 
-Create a dedicated state bucket and DynamoDB lock table outside this stack. Enable bucket versioning, KMS encryption, public-access blocking, access logging, and deletion protection. CI and operators must assume a least-privilege OIDC role; do not use long-lived AWS keys.
+Create a dedicated state bucket and customer-managed KMS key outside this stack for each environment. Enable bucket versioning, public-access blocking, TLS enforcement, access logging or CloudTrail data events, and tightly scoped recovery access. Terraform 1.12 uses the S3-native `.tflock` object; DynamoDB locking is deprecated and is not used. Operators authenticate through IAM Identity Center and GitHub uses an environment-bound OIDC role; never create long-lived AWS keys.
 
-Supply the backend at initialization so one state file can never address both environments:
+Copy the matching example backend file outside the repository, replace its placeholders, and initialize with that secure file so one state can never address both environments:
 
 ```sh
 terraform -chdir=terraform init \
-  -backend-config="bucket=parkshield-terraform-state" \
-  -backend-config="key=staging/core.tfstate" \
-  -backend-config="region=us-east-1" \
-  -backend-config="dynamodb_table=parkshield-terraform-locks" \
-  -backend-config="encrypt=true"
+  -backend-config=/secure/path/backend.staging.hcl
 ```
 
 Terraform state contains generated database/JWT/billing-subject material and must be treated as a production secret. Never use local state for a deployed environment.
@@ -25,6 +21,7 @@ Copy the matching `terraform/staging.tfvars.example` or `terraform/production.tf
 
 ```sh
 terraform -chdir=terraform fmt -check -recursive
+terraform -chdir=terraform init -backend=false
 terraform -chdir=terraform validate
 terraform -chdir=terraform plan -var-file=/secure/path/staging.tfvars -out=staging.plan
 terraform -chdir=terraform apply staging.plan
@@ -34,10 +31,10 @@ Use separate AWS accounts when available. Production plans require peer review, 
 
 ## GitHub environment configuration
 
-Backend environments (`staging`, `production`) require `AWS_DEPLOY_ROLE_ARN`, `AWS_REGION`, `ECR_REPOSITORY`, `ECS_CLUSTER`, `ECS_SERVICE`, `ECS_NETWORK_CONFIGURATION`, and `API_BASE_URL` variables. Protect production with required reviewers.
+Backend environments (`staging`, `production`) require `AWS_ACCOUNT_ID`, `AWS_DEPLOY_ROLE_ARN`, `AWS_REGION`, `ECR_REPOSITORY`, `ECS_CLUSTER`, `ECS_SERVICE`, `ECS_NETWORK_CONFIGURATION`, and `API_BASE_URL` variables. Both environments accept deployments only from protected `main`; protect production with independent required reviewers.
 
 Populate `ECS_NETWORK_CONFIGURATION` directly from `terraform output -raw ecs_network_configuration`; do not hand-edit subnet/security-group JSON.
 
 The `mobile-production` environment requires API/map variables plus Android keystore and Apple distribution/provisioning secrets documented in `mobile/README.md`. No signing material belongs in source control.
 
-The complete account bootstrap and external-service inventory is in `../docs/repository-onboarding.md` and `../docs/external-services.md`.
+The exact OIDC trust and least-privilege policy templates are in `aws/`. The complete account bootstrap and external-service inventory is in `../docs/repository-onboarding.md` and `../docs/external-services.md`.

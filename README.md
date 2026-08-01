@@ -5,9 +5,11 @@ Production-oriented monorepo for ParkShield AI, a parking-intelligence platform 
 ## Repository layout
 
 - `backend/`: FastAPI modular monolith and tests.
-- `mobile/`: Flutter application using feature-first Clean Architecture.
+- `mobile/`: maintained transitional Flutter client; not the final mobile architecture.
 - `infrastructure/`: deployment and observability assets.
 - `docs/`: architecture decisions, product roadmap, and operating guidance.
+
+The definitive clients will be Android with Kotlin/Jetpack Compose and iOS with Swift/SwiftUI. Their migration is planned and gated in `docs/adr/0002-native-mobile-target.md`; this hardening work neither migrates nor removes Flutter code.
 
 ## Delivery status
 
@@ -29,7 +31,7 @@ health checks at `/api/v1/health/live` and `/api/v1/health/ready`. Compose runs
 Alembic to its single head before starting the API and verifies PostgreSQL with
 the PostGIS image.
 
-See `docs/installation.md` for clean-clone, native backend, Flutter, and
+See `docs/installation.md` for clean-clone, native backend, transitional Flutter, and
 troubleshooting instructions. Every accepted setting and secret location is
 listed in `docs/environment-variables.md`.
 
@@ -55,7 +57,7 @@ boundary using an ephemeral Git index.
 
 ## Local quality gates
 
-The prepared macOS ARM64 workspace keeps pinned Python, Flutter, Android/JDK,
+The prepared macOS ARM64 workspace keeps pinned Python, transitional Flutter, Android/JDK,
 Terraform, Trivy, and Actionlint toolchains under the ignored `work/` directory.
 Run the complete locally executable gate set with:
 
@@ -64,7 +66,7 @@ make validate
 ```
 
 This command runs the isolated authentication regression, the full backend suite
-with its unchanged 90% coverage requirement, static/security analysis, Flutter
+with its unchanged 90% coverage requirement, static/security analysis, transitional Flutter
 API/controller/rendering/bilingual-accessibility tests with a required 75%
 maintained-source line-coverage minimum, localization catalog/native-metadata
 validation, an Android debug APK build, Terraform validation, IaC scanning,

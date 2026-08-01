@@ -85,7 +85,9 @@ uvicorn app.main:create_app --factory --reload
 
 Do not paste a shared, staging, or production password into shell history. The inline value above is only a named placeholder for a local credential.
 
-## Run the Flutter application
+## Run the transitional Flutter application
+
+Flutter remains the maintained compatibility and regression baseline while the separately gated Kotlin/Compose and Swift/SwiftUI clients are built. This command does not represent the final mobile architecture; see `adr/0002-native-mobile-target.md`.
 
 ```sh
 cd mobile
@@ -115,7 +117,7 @@ make repository-check
 make validate
 ```
 
-The validation script uses pinned tools under ignored `work/toolchains/` when present and otherwise resolves tools from the system `PATH`. Hosted PostGIS integration, Compose smoke, container, iOS, CodeQL, Gitleaks, cloud, and signed-release jobs remain mandatory even when local gates pass.
+The validation script uses pinned tools under ignored `work/toolchains/` when present and otherwise resolves tools from the system `PATH`. A disposable checkout may point to an existing cache with the absolute-path variables `PARKSHIELD_TOOLCHAINS` and `PARKSHIELD_PYTHON`; neither value is committed or a credential. Hosted PostGIS integration, Compose smoke, container, iOS, CodeQL, Gitleaks, cloud, and signed-release jobs remain mandatory even when local gates pass.
 
 ## Troubleshooting
 

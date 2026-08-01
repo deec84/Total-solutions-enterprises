@@ -6,7 +6,8 @@ Describe the user outcome and the smallest implementation that delivers it.
 
 - [ ] `make validate` passes, or every unavailable local gate is linked to a required CI job.
 - [ ] Backend coverage remains at least 90%.
-- [ ] Flutter line coverage remains at least 75%.
+- [ ] Transitional Flutter maintained-source line coverage remains at least 75% when Flutter is affected.
+- [ ] Native-mobile decisions remain consistent with ADR 0002; no unapproved migration or duplicate business rules were introduced.
 - [ ] No test is skipped, muted, or marked expected-to-fail to obtain a green result.
 - [ ] Database changes include reversible Alembic migration coverage.
 - [ ] Security, privacy, provenance, and degraded-state behavior were reviewed.

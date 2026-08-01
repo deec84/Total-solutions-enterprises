@@ -1,0 +1,54 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RegisterTaskDefinition",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DescribeTaskDefinition",
+        "ecs:RegisterTaskDefinition"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "OperateOnlyProductionService",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DescribeServices",
+        "ecs:UpdateService"
+      ],
+      "Resource": "arn:aws:ecs:<AWS_REGION>:<PRODUCTION_AWS_ACCOUNT_ID>:service/<PRODUCTION_CLUSTER_NAME>/<PRODUCTION_SERVICE_NAME>"
+    },
+    {
+      "Sid": "RunOnlyParkShieldMigrationTasks",
+      "Effect": "Allow",
+      "Action": "ecs:RunTask",
+      "Resource": "arn:aws:ecs:<AWS_REGION>:<PRODUCTION_AWS_ACCOUNT_ID>:task-definition/<PRODUCTION_TASK_FAMILY>:*",
+      "Condition": {
+        "ArnEquals": {
+          "ecs:cluster": "arn:aws:ecs:<AWS_REGION>:<PRODUCTION_AWS_ACCOUNT_ID>:cluster/<PRODUCTION_CLUSTER_NAME>"
+        }
+      }
+    },
+    {
+      "Sid": "ObserveOnlyProductionMigrationTasks",
+      "Effect": "Allow",
+      "Action": "ecs:DescribeTasks",
+      "Resource": "arn:aws:ecs:<AWS_REGION>:<PRODUCTION_AWS_ACCOUNT_ID>:task/<PRODUCTION_CLUSTER_NAME>/*"
+    },
+    {
+      "Sid": "PassOnlyParkShieldTaskRoles",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "arn:aws:iam::<PRODUCTION_AWS_ACCOUNT_ID>:role/<PRODUCTION_ECS_EXECUTION_ROLE_NAME>",
+        "arn:aws:iam::<PRODUCTION_AWS_ACCOUNT_ID>:role/<PRODUCTION_ECS_TASK_ROLE_NAME>"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ecs-tasks.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListOnlyEnvironmentStateKeys",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::<ENVIRONMENT_STATE_BUCKET>",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "parkshield/<ENVIRONMENT>/core.tfstate",
+            "parkshield/<ENVIRONMENT>/core.tfstate.tflock"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "ReadWriteStateWithoutDelete",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::<ENVIRONMENT_STATE_BUCKET>/parkshield/<ENVIRONMENT>/core.tfstate"
+    },
+    {
+      "Sid": "ManageNativeLockFile",
+      "Effect": "Allow",
+      "Action": [
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::<ENVIRONMENT_STATE_BUCKET>/parkshield/<ENVIRONMENT>/core.tfstate.tflock"
+    },
+    {
+      "Sid": "UseOnlyEnvironmentStateKey",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt",
+        "kms:DescribeKey",
+        "kms:Encrypt",
+        "kms:GenerateDataKey"
+      ],
+      "Resource": "<ENVIRONMENT_STATE_KMS_KEY_ARN>"
+    }
+  ]
+}

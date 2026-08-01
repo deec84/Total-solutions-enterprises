@@ -1,5 +1,8 @@
 name: mobile-release
 
+# Transitional Flutter release path. Keep disabled until explicit release
+# authorization; the target native architecture is documented separately.
+
 on:
   workflow_dispatch:
 
@@ -12,12 +15,15 @@ concurrency:
 
 jobs:
   android:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     environment: mobile-production
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.44.6'
           cache: true
@@ -30,6 +36,9 @@ jobs:
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: |
           test -n "$KEYSTORE_BASE64"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          test -n "$STORE_PASSWORD"
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
           {
             printf 'storeFile=upload-keystore.jks\n'
@@ -41,12 +50,19 @@ jobs:
         working-directory: mobile
       - name: Build signed Android App Bundle
         working-directory: mobile
-        run: >-
-          flutter build appbundle --release
-          --dart-define=PARKSHIELD_API_BASE_URL=${{ vars.API_BASE_URL }}
-          --dart-define=PARKSHIELD_MAP_TILE_URL=${{ vars.MAP_TILE_URL }}
-          --dart-define=PARKSHIELD_PRODUCT_ANALYTICS_ENABLED=${{ vars.PRODUCT_ANALYTICS_ENABLED }}
-      - uses: actions/upload-artifact@v4
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          MAP_TILE_URL: ${{ vars.MAP_TILE_URL }}
+          PRODUCT_ANALYTICS_ENABLED: ${{ vars.PRODUCT_ANALYTICS_ENABLED }}
+        run: |
+          case "$API_BASE_URL" in https://*) ;; *) exit 1 ;; esac
+          case "$MAP_TILE_URL" in https://*) ;; *) exit 1 ;; esac
+          case "$PRODUCT_ANALYTICS_ENABLED" in true|false) ;; *) exit 1 ;; esac
+          flutter build appbundle --release \
+            --dart-define="PARKSHIELD_API_BASE_URL=$API_BASE_URL" \
+            --dart-define="PARKSHIELD_MAP_TILE_URL=$MAP_TILE_URL" \
+            --dart-define="PARKSHIELD_PRODUCT_ANALYTICS_ENABLED=$PRODUCT_ANALYTICS_ENABLED"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: parkshield-android-${{ github.sha }}
           path: mobile/build/app/outputs/bundle/release/app-release.aab
@@ -54,12 +70,15 @@ jobs:
           retention-days: 30
 
   ios:
+    if: github.ref == 'refs/heads/main'
     runs-on: macos-latest
     timeout-minutes: 45
     environment: mobile-production
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.44.6'
           cache: true
@@ -71,6 +90,9 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
         run: |
           test -n "$CERTIFICATE_BASE64"
+          test -n "$CERTIFICATE_PASSWORD"
+          test -n "$PROFILE_BASE64"
+          test -n "$KEYCHAIN_PASSWORD"
           CERTIFICATE_PATH="$RUNNER_TEMP/distribution.p12"
           PROFILE_PATH="$RUNNER_TEMP/parkshield.mobileprovision"
           KEYCHAIN_PATH="$RUNNER_TEMP/parkshield-signing.keychain-db"
@@ -92,11 +114,18 @@ jobs:
         working-directory: mobile
       - name: Prepare release Flutter assets
         working-directory: mobile
-        run: >-
-          flutter build ios --release --no-codesign
-          --dart-define=PARKSHIELD_API_BASE_URL=${{ vars.API_BASE_URL }}
-          --dart-define=PARKSHIELD_MAP_TILE_URL=${{ vars.MAP_TILE_URL }}
-          --dart-define=PARKSHIELD_PRODUCT_ANALYTICS_ENABLED=${{ vars.PRODUCT_ANALYTICS_ENABLED }}
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          MAP_TILE_URL: ${{ vars.MAP_TILE_URL }}
+          PRODUCT_ANALYTICS_ENABLED: ${{ vars.PRODUCT_ANALYTICS_ENABLED }}
+        run: |
+          case "$API_BASE_URL" in https://*) ;; *) exit 1 ;; esac
+          case "$MAP_TILE_URL" in https://*) ;; *) exit 1 ;; esac
+          case "$PRODUCT_ANALYTICS_ENABLED" in true|false) ;; *) exit 1 ;; esac
+          flutter build ios --release --no-codesign \
+            --dart-define="PARKSHIELD_API_BASE_URL=$API_BASE_URL" \
+            --dart-define="PARKSHIELD_MAP_TILE_URL=$MAP_TILE_URL" \
+            --dart-define="PARKSHIELD_PRODUCT_ANALYTICS_ENABLED=$PRODUCT_ANALYTICS_ENABLED"
       - name: Archive signed application
         working-directory: mobile
         env:
@@ -123,7 +152,7 @@ jobs:
             -archivePath "$RUNNER_TEMP/ParkShield.xcarchive" \
             -exportPath "$RUNNER_TEMP/ParkShieldExport" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: parkshield-ios-${{ github.sha }}
           path: ${{ runner.temp }}/ParkShieldExport/*.ipa

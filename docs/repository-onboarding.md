@@ -15,37 +15,30 @@ The repository check creates an ephemeral Git index, verifies that credentials a
 
 Review `.env.example` and confirm there is no real credential. Keep your working `.env` ignored. If Gitleaks is available locally, run `gitleaks dir . --redact`; the hosted Gitleaks job remains mandatory after the first push.
 
-## 2. Create the local repository
+## 2. Work with the canonical repository
+
+The canonical repository already exists at `deec84/Total-solutions-enterprises`. Do not initialize another history or push directly to `main`. For a clean workstation:
 
 ```sh
-git init -b main
-git add --all
-git status --short
-git diff --cached --check
-git commit -m "Initial ParkShield AI platform"
+git clone https://github.com/deec84/Total-solutions-enterprises.git
+cd Total-solutions-enterprises
+git switch main
+git pull --ff-only origin main
+git switch -c agent/<reviewed-change-name>
 ```
 
-Inspect the staged list before committing. It must include `.env.example`, `.terraform.lock.hcl`, `mobile/pubspec.lock`, the Android Gradle Wrapper, documentation, and workflows. It must not include `.env`, `work/`, coverage, build artifacts, Terraform state/plans/tfvars, mobile signing material, or local IDE state.
+Before each commit, inspect the staged list. It must not include `.env`, `work/`, coverage, build artifacts, Terraform state/plans/tfvars, mobile signing material, or local IDE state.
 
-## 3. Create and connect GitHub
+## 3. Verify the GitHub connection
 
-In the selected GitHub organization, create a private repository named `parkshield-ai`. Do not initialize it with another README, `.gitignore`, or license because those choices already exist or require owner approval.
-
-Connect the local repository:
+The remote must resolve to the canonical repository:
 
 ```sh
-git remote add origin git@github.com:<OWNER>/parkshield-ai.git
 git remote -v
-git push -u origin main
+gh repo view deec84/Total-solutions-enterprises
 ```
 
-Equivalent GitHub CLI creation is acceptable after authenticated organization access:
-
-```sh
-gh repo create <OWNER>/parkshield-ai --private --source=. --remote=origin --push
-```
-
-Do not use a personal access token as an Actions secret. Developer authentication belongs in the developer keychain; Actions receives its short-lived token from GitHub.
+Do not recreate or rename the repository as part of infrastructure onboarding. Do not use a personal access token as an Actions secret. Developer authentication belongs in the developer keychain; Actions receives its short-lived token from GitHub.
 
 ## 4. Protect the repository
 
@@ -59,6 +52,8 @@ Create a ruleset for `main` with:
 - The Terraform job required for infrastructure changes.
 - Administrators included in the rule except documented break-glass recovery.
 
+Set the default `GITHUB_TOKEN` permission to read-only, do not send write tokens or secrets to fork pull requests, allow only the reviewed action publishers listed in `docs/github-hardening.md`, and require full-length action SHA pinning. Dependabot updates remain ordinary reviewed pull requests; never enable blanket automerge.
+
 Enable Dependabot alerts/updates, secret scanning, push protection, code scanning, and private vulnerability reporting. If a private-repository CodeQL entitlement is unavailable, that is a recorded production blocker; do not remove the workflow.
 
 After the organization team slug and code owners are known, add a real `.github/CODEOWNERS` file and require its review. Do not commit a placeholder owner that silently routes reviews to nobody. Select a repository license only after the legal owner approves it; the current private source intentionally does not invent one.
@@ -69,9 +64,11 @@ Create `staging`, `production`, and `mobile-production`.
 
 - Require reviewers for `production` and `mobile-production`.
 - Prevent self-review where the organization supports it.
-- Restrict deployment branches to protected `main`.
+- Select only the `main` deployment branch; add no wildcard branch or tag rule.
 - Keep environment variables and secrets separate.
 - Do not allow environment bypass merely to make a workflow pass.
+
+If the accidental `stageing` environment exists, follow the fail-closed correction in `docs/github-hardening.md`: create an empty protected `staging`, confirm no workflow/reference uses the typo, and only then delete `stageing`. Do not edit `production` or `mobile-production` during that correction.
 
 Populate `staging` and `production` with the seven variables listed in `docs/environment-variables.md`. Provider passwords/tokens stay in AWS Secrets Manager, not GitHub.
 
@@ -84,8 +81,8 @@ Use AWS Organizations/IAM Identity Center and an MFA-protected operator. Prefer 
 Before application Terraform:
 
 1. Enable account-level audit logging, budgets, security contacts, and break-glass controls.
-2. Create the encrypted/versioned Terraform S3 state bucket and DynamoDB lock table.
-3. Create the GitHub OIDC provider and a deployment role whose trust subject is limited to `repo:<OWNER>/parkshield-ai:environment:<ENVIRONMENT>` and audience `sts.amazonaws.com`.
+2. Create the encrypted/versioned Terraform S3 state bucket and dedicated KMS key. Terraform uses the S3-native `.tflock`; do not create a new DynamoDB lock table.
+3. Create the GitHub OIDC provider and separate deployment roles whose trust subjects are exactly `repo:deec84/Total-solutions-enterprises:environment:staging` and `repo:deec84/Total-solutions-enterprises:environment:production`, with audience `sts.amazonaws.com`.
 4. Give that role only the scoped ECR/ECS task-registration, run-task, update-service, describe/wait, and required `iam:PassRole` permissions used by `deploy.yml`.
 5. Create the ECR repository with vulnerability scanning, immutable tags where compatible with the workflow, lifecycle policy, and the chosen cross-account promotion/replication policy.
 6. Create or delegate the Route 53 hosted zone and validate the regional ACM certificate for the planned origin hostname.
@@ -102,11 +99,7 @@ Copy `infrastructure/terraform/staging.tfvars.example` outside the repository, r
 
 ```sh
 terraform -chdir=infrastructure/terraform init \
-  -backend-config="bucket=<STAGING_STATE_BUCKET>" \
-  -backend-config="key=staging/core.tfstate" \
-  -backend-config="region=<AWS_REGION>" \
-  -backend-config="dynamodb_table=<STAGING_LOCK_TABLE>" \
-  -backend-config="encrypt=true"
+  -backend-config=/secure/path/backend.staging.hcl
 
 terraform -chdir=infrastructure/terraform plan \
   -var-file=/secure/path/staging.tfvars \

@@ -3,7 +3,24 @@ set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPOSITORY_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
-TOOLCHAINS="$REPOSITORY_ROOT/work/toolchains"
+TOOLCHAINS=${PARKSHIELD_TOOLCHAINS:-"$REPOSITORY_ROOT/work/toolchains"}
+case "$TOOLCHAINS" in
+  /*) ;;
+  *)
+    printf 'PARKSHIELD_TOOLCHAINS must be an absolute path.\n' >&2
+    exit 1
+    ;;
+esac
+
+if [ -n "${PARKSHIELD_PYTHON:-}" ]; then
+  case "$PARKSHIELD_PYTHON" in
+    /*) ;;
+    *)
+      printf 'PARKSHIELD_PYTHON must be an absolute path.\n' >&2
+      exit 1
+      ;;
+  esac
+fi
 
 resolve_executable() {
   preferred_path=$1
@@ -20,7 +37,9 @@ resolve_executable() {
   exit 1
 }
 
-PYTHON=$(resolve_executable "$REPOSITORY_ROOT/backend/.venv/bin/python" python3)
+PYTHON=$(resolve_executable \
+  "${PARKSHIELD_PYTHON:-$REPOSITORY_ROOT/backend/.venv/bin/python}" \
+  python3)
 FLUTTER=$(resolve_executable "$TOOLCHAINS/flutter/bin/flutter" flutter)
 DART=$(resolve_executable "$TOOLCHAINS/flutter/bin/dart" dart)
 TERRAFORM=$(resolve_executable "$TOOLCHAINS/terraform-bin/terraform" terraform)
