@@ -4,12 +4,12 @@ These files are reviewable templates, not provisioned resources. Replace angle-b
 
 ## GitHub OIDC
 
-Create one GitHub OIDC provider and one deployment role in each isolated AWS account. The audience is `sts.amazonaws.com`. The trust subjects are intentionally exact:
+Create one GitHub OIDC provider and one deployment role in each isolated AWS account. The audience is `sts.amazonaws.com`. Each trust policy requires the exact repository/environment subject and `refs/heads/main` claim:
 
 - staging: `repo:deec84/Total-solutions-enterprises:environment:staging`
 - production: `repo:deec84/Total-solutions-enterprises:environment:production`
 
-Use `oidc-trust-staging.json.example` and `oidc-trust-production.json.example`. Do not add branch, repository-wide, wildcard-environment, pull-request, or fork subjects. The `deploy` workflow independently rejects every ref except `refs/heads/main` and binds the job to the selected protected GitHub environment.
+Use `oidc-trust-staging.json.example` and `oidc-trust-production.json.example`. Do not add branch, repository-wide, wildcard-environment, pull-request, or fork subjects. The trust policy and `deploy` workflow both reject every ref except `refs/heads/main`, and the job binds to the selected protected GitHub environment.
 
 Attach the matching deployment permission template. The staging role may push only to the staging ECR repository. The production role intentionally has no ECR push permission because production accepts only a staging-approved digest already present in the production repository. Replace every placeholder with a reviewed ARN, run IAM Access Analyzer, and narrow any action further when AWS reports resource-level support.
 

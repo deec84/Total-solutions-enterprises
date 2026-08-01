@@ -82,7 +82,7 @@ Before application Terraform:
 
 1. Enable account-level audit logging, budgets, security contacts, and break-glass controls.
 2. Create the encrypted/versioned Terraform S3 state bucket and dedicated KMS key. Terraform uses the S3-native `.tflock`; do not create a new DynamoDB lock table.
-3. Create the GitHub OIDC provider and separate deployment roles whose trust subjects are exactly `repo:deec84/Total-solutions-enterprises:environment:staging` and `repo:deec84/Total-solutions-enterprises:environment:production`, with audience `sts.amazonaws.com`.
+3. Create the GitHub OIDC provider and separate deployment roles whose trust subjects are exactly `repo:deec84/Total-solutions-enterprises:environment:staging` and `repo:deec84/Total-solutions-enterprises:environment:production`, with audience `sts.amazonaws.com` and a required `refs/heads/main` claim.
 4. Give that role only the scoped ECR/ECS task-registration, run-task, update-service, describe/wait, and required `iam:PassRole` permissions used by `deploy.yml`.
 5. Create the ECR repository with vulnerability scanning, immutable tags where compatible with the workflow, lifecycle policy, and the chosen cross-account promotion/replication policy.
 6. Create or delegate the Route 53 hosted zone and validate the regional ACM certificate for the planned origin hostname.

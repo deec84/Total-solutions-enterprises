@@ -97,6 +97,12 @@ def main() -> int:
         )
         require(subject, trust, str(trust_path.relative_to(ROOT)), errors)
         require("sts.amazonaws.com", trust, str(trust_path.relative_to(ROOT)), errors)
+        require(
+            '"token.actions.githubusercontent.com:ref": "refs/heads/main"',
+            trust,
+            str(trust_path.relative_to(ROOT)),
+            errors,
+        )
 
     if errors:
         print("GitHub hardening checks failed:", file=sys.stderr)
