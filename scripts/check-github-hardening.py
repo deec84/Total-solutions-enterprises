@@ -98,12 +98,6 @@ def main() -> int:
         require(subject, trust, str(trust_path.relative_to(ROOT)), errors)
         require("sts.amazonaws.com", trust, str(trust_path.relative_to(ROOT)), errors)
 
-    architecture = (ROOT / "docs" / "adr" / "0002-native-mobile-target.md").read_text(
-        encoding="utf-8"
-    )
-    for fragment in ("Kotlin", "Jetpack Compose", "Swift", "SwiftUI", "transitional"):
-        require(fragment, architecture, "docs/adr/0002-native-mobile-target.md", errors)
-
     if errors:
         print("GitHub hardening checks failed:", file=sys.stderr)
         for error in errors:

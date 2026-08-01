@@ -59,9 +59,9 @@ These values configure the local container topology; they are not backend `Setti
 | `PARKSHIELD_POSTGRES_USER` | No | Local database role; default `parkshield`. |
 | `PARKSHIELD_POSTGRES_PASSWORD` | Yes | Local database password. It must match the password embedded in `PARKSHIELD_DATABASE_URL`. |
 
-## Transitional Flutter compile-time definitions
+## Flutter compile-time definitions
 
-The current Flutter client reads these with `String.fromEnvironment`; supply them with `--dart-define` at build time. Flutter is the maintained transition baseline, not the final mobile architecture. Kotlin/Compose and Swift/SwiftUI configuration contracts will replace these definitions through the migration gates in `adr/0002-native-mobile-target.md`.
+Flutter reads these with `String.fromEnvironment`; supply them with `--dart-define` at build time.
 
 | Definition | Sensitive | Requirement |
 |---|---:|---|

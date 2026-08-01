@@ -1,8 +1,5 @@
 name: mobile-release
 
-# Transitional Flutter release path. Keep disabled until explicit release
-# authorization; the target native architecture is documented separately.
-
 on:
   workflow_dispatch:
 

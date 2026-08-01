@@ -2,7 +2,7 @@
 
 ## Decision
 
-The backend, current transition client, migrations, CI/CD, infrastructure, and operational controls are implementation-complete for the documented pre-staging scope. Production promotion is **not authorized from this local workspace alone**. The definitive Kotlin/Compose and Swift/SwiftUI clients have not yet been implemented, so native-mobile migration is an explicit release blocker in addition to green hosted CI and account-specific cloud, provider, data, signing, and approval evidence.
+The application source, migrations, client, CI/CD, infrastructure, and operational controls are implementation-complete for the documented launch scope. Production promotion is **not authorized from this local workspace alone**. It requires green hosted CI plus account-specific cloud, provider, data, signing, and approval evidence.
 
 ## Verified locally
 
@@ -35,7 +35,6 @@ The backend, current transition client, migrations, CI/CD, infrastructure, and o
 7. Accepted Apple/Google paid-app agreements, approved products/pricing/refund/tax policy, real native purchase and server-notification adapters, verification secrets, and sandbox purchase/renewal/refund/revocation/restore evidence.
 8. Owner-approved Spanish product/legal review, physical-device VoiceOver and TalkBack journeys, and approved English/Spanish App Store and Play listing copy/screenshots.
 9. Approved monitoring and product-analytics providers/DPAs, exact HTTPS endpoints and restricted egress ranges, injected adapters and environment-owned credentials, staging trace/metric delivery, deletion/expiry exercises, cardinality/cost limits, and an on-call alert drill.
-10. Kotlin/Compose and Swift/SwiftUI clients pass the ADR 0002 parity, security, accessibility, performance, physical-device, store-signing, and staged-cutover gates. Flutter remains supported until that evidence exists.
 
 No CI job is skipped or marked allowed-to-fail to satisfy these gates.
 

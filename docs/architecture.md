@@ -4,7 +4,7 @@
 
 ParkShield begins as a modular monolith: one deployable API with independently owned business modules. This keeps transactions and operations understandable while the product discovers stable scaling boundaries. Modules communicate through application interfaces and domain events, never through another module's tables.
 
-The definitive mobile clients use native, feature-first Clean Architecture: Kotlin with Jetpack Compose for Android and Swift with SwiftUI for iOS. The existing Flutter client is a maintained transition baseline only; it remains gated until both native clients satisfy the parity and release criteria in ADR 0002. The backend uses presentation, application, domain, and infrastructure layers. PostgreSQL is the authoritative transactional store and encrypted object storage holds governed community media outside the database. Media access uses privileged, short-lived grants; object keys remain internal, every access or purge is audited, and retention never exceeds 30 days. Provider interfaces isolate OCR, prediction, maps, email, and push delivery so independently scaled workers can be introduced without changing domain contracts.
+The mobile client uses feature-first Clean Architecture. The backend uses presentation, application, domain, and infrastructure layers. PostgreSQL is the authoritative transactional store and encrypted object storage holds governed community media outside the database. Media access uses privileged, short-lived grants; object keys remain internal, every access or purge is audited, and retention never exceeds 30 days. Provider interfaces isolate OCR, prediction, maps, email, and push delivery so independently scaled workers can be introduced without changing domain contracts.
 
 ## Bounded contexts
 
@@ -38,9 +38,7 @@ REST endpoints live below `/api/v1`. Schemas are explicit and backward compatibl
 
 ```mermaid
 flowchart LR
-    A["Android — Kotlin / Compose target"] --> CF["CloudFront HTTPS"]
-    I["iOS — Swift / SwiftUI target"] --> CF
-    F["Flutter transition baseline"] -. temporary .-> CF
+    M["Flutter iOS / Android"] --> CF["CloudFront HTTPS"]
     CF --> WAF["WAF + private origin policy"]
     WAF --> ALB["Application Load Balancer"]
     ALB --> ECS["ECS Fargate API in private subnets"]

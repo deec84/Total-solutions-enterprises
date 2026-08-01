@@ -1,8 +1,6 @@
-# ParkShield Mobile — transitional Flutter baseline
+# ParkShield Mobile
 
-This Flutter client is maintained as the tested transition baseline. It is not the final ParkShield mobile architecture. New native clients will use Kotlin with Jetpack Compose on Android and Swift with SwiftUI on iOS under the gated migration in `../docs/adr/0002-native-mobile-target.md`. Do not delete this client or relax its gates until both native clients meet parity, accessibility, privacy, security, performance, and release criteria.
-
-The reproducible transition baseline is Flutter 3.44.6 with its bundled Dart SDK and feature-first Clean Architecture.
+Flutter client following feature-first Clean Architecture. The reproducible CI baseline is Flutter 3.44.6 with its bundled Dart SDK.
 
 Authentication tokens are stored with `flutter_secure_storage`, which maps to Keychain on iOS and encrypted platform storage on Android. Never replace it with shared preferences or source-controlled values.
 

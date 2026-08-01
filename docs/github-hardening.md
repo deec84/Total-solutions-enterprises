@@ -26,7 +26,7 @@ Repository Actions settings should use a read-only default `GITHUB_TOKEN`, disab
 - `hashicorp/setup-terraform`;
 - `aquasecurity/trivy-action` and `gitleaks/gitleaks-action`;
 - `docker/setup-buildx-action` and `docker/build-push-action`;
-- `subosito/flutter-action` while Flutter remains transitional;
+- `subosito/flutter-action`;
 - `aws-actions/configure-aws-credentials`, `aws-actions/amazon-ecr-login`, and `aws-actions/amazon-ecs-render-task-definition`.
 
 Every `uses:` reference is pinned to a verified 40-character commit with its readable release tag in a comment. Dependabot remains responsible for proposing later SHA changes through ordinary reviewed PRs.
@@ -62,27 +62,7 @@ The following open PRs were observed on 2026-08-01. The hardening configuration 
 | #8 | cryptography upper bound 49 → 50 | Security library major; review compatibility and audit output. |
 | #9 | mypy upper bound 2 → 3 | Major type-checker change; no error suppression permitted. |
 | #10 | Buildx action 3 → 4 | Major supply-chain action; verify provenance/SBOM behavior. |
-| #11 | Flutter lints 4 → 6 | Transitional client lint migration; do not weaken rules. |
-| #12 | Kotlin plugin 2.3.20 → 2.4.10 | Transitional Android wrapper; verify Flutter build compatibility. |
-| #13 | Gradle wrapper 9.1.0 → 9.6.1 | Build tool update; validate wrapper checksum and Android build. |
 | #21 | Android Gradle Plugin 9.0.1 → 9.3.1 | Build-system update; validate SDK, lint, package, and device compatibility. |
 | #22 | AWS provider 6.55.0 → 6.56.0 | Review changelog, lock hashes, validate, Trivy, and a credential-free plan where possible. |
-| #24 | Flutter local notifications 22.0.1 → 22.2.0 | Permission/background behavior; physical-device regression required. |
 
 Dependabot now targets only real manifests: pip `/backend`, pub `/mobile`, Actions `/`, Docker `/backend`, Terraform `/infrastructure/terraform`, and Gradle `/mobile/android`. Minor and patch updates are grouped per ecosystem, concurrent PRs are bounded, and no automerge is configured. The invalid root Docker ecosystem has been removed.
-
-## Manual publication from the isolated local clone
-
-If Codex cannot access the macOS keychain, the prepared branch can be published from the operator's Terminal without sharing a credential:
-
-```sh
-cd /Users/davidecheverria/Documents/Codex/parkshield-ai-github-hardening
-git status --short --branch
-git log -1 --oneline
-git push -u origin agent/github-infrastructure-hardening
-gh pr create --draft --base main --head agent/github-infrastructure-hardening \
-  --title "Harden GitHub and infrastructure boundaries" \
-  --body-file /secure/path/parkshield-hardening-pr.md
-```
-
-Review the exact branch and commit before pushing. Do not mark the PR ready, merge it, dispatch releases, or run Terraform apply as part of this procedure.
