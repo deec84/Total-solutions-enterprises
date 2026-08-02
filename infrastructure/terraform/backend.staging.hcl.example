@@ -1,0 +1,6 @@
+# Copy this file outside the repository and replace every placeholder.
+# Authentication comes from AWS IAM Identity Center or GitHub OIDC, never keys.
+bucket     = "REPLACE_STAGING_STATE_BUCKET"
+key        = "parkshield/staging/core.tfstate"
+region     = "REPLACE_AWS_REGION"
+kms_key_id = "REPLACE_STAGING_STATE_KMS_KEY_ARN"
