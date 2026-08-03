@@ -1,6 +1,7 @@
 """Contract tests for the versioned public API error envelope."""
 
 import json
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -88,6 +89,34 @@ def test_validation_422_filters_input_and_uses_allowlisted_details(api: TestClie
     assert_error_envelope(response, 422, "VALIDATION_FAILED")
     assert response.json()["details"] == [{"field": "password", "code": "MISSING_FIELD"}]
     assert "person@example.com" not in response.text
+
+
+def test_duplicate_registration_409_uses_complete_safe_conflict_contract(api: TestClient) -> None:
+    credentials = {"email": "person@example.com", "password": "secure-password"}
+    api.post("/api/v1/auth/register", json=credentials)
+
+    response = api.post(
+        "/api/v1/auth/register",
+        json=credentials,
+        headers={"X-Correlation-ID": "contract-conflict-409"},
+    )
+
+    assert_error_envelope(response, 409, "CONFLICT")
+    payload = response.json()
+    assert payload["message"] == "Request conflicts with current state."
+    assert payload["correlation_id"] == "contract-conflict-409"
+    assert re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", payload["correlation_id"])
+    assert "details" not in payload
+    for sensitive_value in (
+        "person@example.com",
+        "secure-password",
+        "Traceback",
+        "SELECT ",
+        "/Users/",
+        "token=",
+        "secret",
+    ):
+        assert sensitive_value not in response.text
 
 
 def test_unhandled_error_is_sanitized(api: TestClient) -> None:
