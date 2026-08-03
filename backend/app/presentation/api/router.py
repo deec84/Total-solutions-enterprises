@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.presentation.api.errors import error_responses
 from app.presentation.api.routes.admin import router as admin_router
 from app.presentation.api.routes.analytics import router as analytics_router
 from app.presentation.api.routes.auth import router as auth_router
@@ -17,7 +18,7 @@ from app.presentation.api.routes.recommendations import router as recommendation
 from app.presentation.api.routes.recovery import router as recovery_router
 from app.presentation.api.routes.sign_scanner import router as sign_scanner_router
 
-api_router = APIRouter()
+api_router = APIRouter(responses=error_responses())
 api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
 api_router.include_router(analytics_router, prefix="/analytics", tags=["product-analytics"])
 api_router.include_router(billing_router, prefix="/billing", tags=["billing-entitlements"])
