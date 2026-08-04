@@ -407,7 +407,8 @@ def test_billing_api_returns_fail_closed_disabled_state(billing_api: TestClient)
         },
     )
     assert response.status_code == 503
-    assert response.json()["detail"] == "store purchase verification is not enabled"
+    assert response.json()["code"] == "SERVICE_UNAVAILABLE"
+    assert response.json()["message"] == "Service is temporarily unavailable."
 
 
 def test_billing_dependency_remains_disabled_without_provider_configuration() -> None:

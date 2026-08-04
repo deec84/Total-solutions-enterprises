@@ -335,7 +335,8 @@ def test_readiness_fails_when_configured_exporter_is_unavailable() -> None:
     with TestClient(application) as client:
         response = client.get("/api/v1/health/ready")
     assert response.status_code == 503
-    assert response.json()["detail"] == "observability provider unavailable"
+    assert response.json()["code"] == "SERVICE_UNAVAILABLE"
+    assert response.json()["message"] == "Service is temporarily unavailable."
 
 
 def test_product_event_schema_rejects_sensitive_and_unknown_fields() -> None:

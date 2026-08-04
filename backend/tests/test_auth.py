@@ -85,7 +85,7 @@ def test_duplicate_registration_and_bad_login_do_not_leak_details(api: TestClien
 
     assert duplicate.status_code == 409
     assert bad_login.status_code == 401
-    assert bad_login.json()["detail"] == "invalid credentials"
+    assert bad_login.json()["code"] == "AUTHENTICATION_FAILED"
 
 
 def test_refresh_tokens_rotate_and_logout_revokes_session(
@@ -135,7 +135,7 @@ def test_rejects_invalid_verification_token(api: TestClient) -> None:
     response = api.post("/api/v1/auth/verify-email", json={"token": "invalid"})
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "invalid verification token"
+    assert response.json()["code"] == "INVALID_REQUEST"
 
 
 def test_password_reset_is_single_use_and_revokes_existing_sessions(
@@ -145,9 +145,9 @@ def test_password_reset_is_single_use_and_revokes_existing_sessions(
     old_credentials = {"email": email, "password": "old-secure-password"}
     api.post("/api/v1/auth/register", json=old_credentials)
     verify_registered_email(api, notifier, email)
-    existing_refresh = api.post("/api/v1/auth/login", json=old_credentials).json()[
-        "refresh_token"
-    ]
+    existing_refresh = api.post(
+        "/api/v1/auth/login", json=old_credentials
+    ).json()["refresh_token"]
 
     request = api.post("/api/v1/auth/password-reset/request", json={"email": email})
     token = notifier.password_reset_token_for(email)
@@ -206,7 +206,7 @@ def test_login_rate_limit_is_scoped_and_returns_retry_after(api: TestClient) -> 
 
     assert blocked.status_code == 429
     assert int(blocked.headers["Retry-After"]) > 0
-    assert blocked.json()["detail"] == "too many authentication attempts"
+    assert blocked.json()["code"] == "RATE_LIMITED"
     assert different_identity.status_code == 401
 
 
