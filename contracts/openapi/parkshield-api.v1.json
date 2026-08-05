@@ -817,6 +817,7 @@
       "LogoutCommand": {
         "properties": {
           "refresh_token": {
+            "description": "Opaque refresh credential. Logout is idempotent for a structurally valid payload.",
             "title": "Refresh Token",
             "type": "string"
           }
@@ -1801,6 +1802,7 @@
       "RefreshCommand": {
         "properties": {
           "refresh_token": {
+            "description": "Opaque refresh credential. A successful refresh rotates it immediately.",
             "title": "Refresh Token",
             "type": "string"
           }
@@ -2120,19 +2122,23 @@
       "TokenPair": {
         "properties": {
           "access_token": {
+            "description": "Opaque access credential.",
             "title": "Access Token",
             "type": "string"
           },
           "expires_in": {
+            "description": "Lifetime in seconds of access_token; 900 seconds with the default configuration.",
             "title": "Expires In",
             "type": "integer"
           },
           "refresh_token": {
+            "description": "Opaque refresh credential. Each successful refresh rotates this value; the prior value becomes unusable immediately. The configured TTL is 30 days by default.",
             "title": "Refresh Token",
             "type": "string"
           },
           "token_type": {
             "default": "bearer",
+            "description": "Authorization scheme for access_token.",
             "title": "Token Type",
             "type": "string"
           }
@@ -3907,6 +3913,7 @@
     },
     "/api/v1/auth/login": {
       "post": {
+        "description": "Returns opaque access and refresh credentials. Accounts that are inactive, unverified, or have invalid credentials receive the same non-revealing authentication failure.",
         "operationId": "login_api_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -4048,6 +4055,7 @@
     },
     "/api/v1/auth/logout": {
       "post": {
+        "description": "Revokes the supplied refresh credential when it is valid. This operation is idempotent: a structurally valid payload returns 204 even when the credential is expired, revoked, or consumed.",
         "operationId": "logout_api_v1_auth_logout_post",
         "requestBody": {
           "content": {
@@ -4072,16 +4080,6 @@
               }
             },
             "description": "Invalid request."
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication is required."
           },
           "403": {
             "content": {
@@ -4600,6 +4598,7 @@
     },
     "/api/v1/auth/refresh": {
       "post": {
+        "description": "Consumes the supplied refresh credential and returns a new pair. Refresh credentials rotate on every success; replay, expiry, revocation, and concurrent reuse return SESSION_INVALID.",
         "operationId": "refresh_api_v1_auth_refresh_post",
         "requestBody": {
           "content": {
