@@ -1,6 +1,7 @@
 """Authentication API contract and session lifecycle tests."""
 
 from collections.abc import Iterator
+from dataclasses import replace
 from uuid import uuid4
 
 import pytest
@@ -94,17 +95,29 @@ def test_refresh_tokens_rotate_and_logout_revokes_session(
     credentials = {"email": "driver@example.com", "password": "a-secure-password"}
     api.post("/api/v1/auth/register", json=credentials)
     verify_registered_email(api, notifier, credentials["email"])
-    original = api.post("/api/v1/auth/login", json=credentials).json()["refresh_token"]
+    login = api.post("/api/v1/auth/login", json=credentials).json()
+    original = login["refresh_token"]
     rotated_response = api.post("/api/v1/auth/refresh", json={"refresh_token": original})
     replay = api.post("/api/v1/auth/refresh", json={"refresh_token": original})
     rotated = rotated_response.json()["refresh_token"]
     logout = api.post("/api/v1/auth/logout", json={"refresh_token": rotated})
     after_logout = api.post("/api/v1/auth/refresh", json={"refresh_token": rotated})
+    access_after_logout = api.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {login['access_token']}"}
+    )
 
     assert rotated_response.status_code == 200
     assert replay.status_code == 401
     assert logout.status_code == 204
     assert after_logout.status_code == 401
+    assert after_logout.json()["code"] == "SESSION_INVALID"
+    assert access_after_logout.status_code == 200
+
+
+def test_logout_is_idempotent_for_invalid_or_consumed_refresh_tokens(api: TestClient) -> None:
+    invalid = api.post("/api/v1/auth/logout", json={"refresh_token": "not-a-real-token"})
+
+    assert invalid.status_code == 204
 
 
 def test_rejects_missing_access_token_and_weak_registration_password(api: TestClient) -> None:
@@ -129,6 +142,23 @@ def test_unverified_account_cannot_login(
     assert registration.json()["is_verified"] is False
     assert notifier.token_for(credentials["email"])
     assert login.status_code == 401
+    assert login.json()["code"] == "AUTHENTICATION_FAILED"
+
+
+def test_inactive_account_login_does_not_reveal_internal_state(
+    api: TestClient, identity_service: IdentityService
+) -> None:
+    credentials = {"email": "inactive@example.com", "password": "a-secure-password"}
+    api.post("/api/v1/auth/register", json=credentials)
+    users = identity_service._users
+    user_id = users._by_email[credentials["email"]]
+    user = users._by_id[user_id]
+    users._by_id[user.id] = replace(user, is_active=False)
+
+    login = api.post("/api/v1/auth/login", json=credentials)
+
+    assert login.status_code == 401
+    assert login.json()["code"] == "AUTHENTICATION_FAILED"
 
 
 def test_rejects_invalid_verification_token(api: TestClient) -> None:
