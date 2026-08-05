@@ -50,6 +50,10 @@ mobile/ios/Flutter/Generated.xcconfig
 mobile/ios/Flutter/ephemeral/
 mobile/ios/Flutter/flutter_export_environment.sh
 mobile/ios/Pods/
+apps/android/.gradle/
+apps/android/local.properties
+apps/ios/.build/
+apps/ios/.swiftpm/
 **/DerivedData/
 *.apk
 *.aab

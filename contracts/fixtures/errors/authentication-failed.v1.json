@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "code": "AUTHENTICATION_FAILED",
+  "message": "Authentication failed.",
+  "correlation_id": "fixture-authentication-failed"
+}
