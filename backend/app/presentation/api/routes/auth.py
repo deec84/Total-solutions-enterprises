@@ -159,7 +159,14 @@ async def register(
         raise HTTPException(status.HTTP_409_CONFLICT, str(error)) from error
 
 
-@router.post("/login", response_model=TokenPair)
+@router.post(
+    "/login",
+    response_model=TokenPair,
+    description=(
+        "Returns opaque access and refresh credentials. Accounts that are inactive, unverified, "
+        "or have invalid credentials receive the same non-revealing authentication failure."
+    ),
+)
 async def login(
     command: LoginCommand,
     request: Request,
@@ -192,7 +199,15 @@ async def verify_email(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(error)) from error
 
 
-@router.post("/refresh", response_model=TokenPair)
+@router.post(
+    "/refresh",
+    response_model=TokenPair,
+    description=(
+        "Consumes the supplied refresh credential and returns a new pair. Refresh credentials "
+        "rotate on every success; replay, expiry, revocation, and concurrent reuse return "
+        "SESSION_INVALID."
+    ),
+)
 async def refresh(
     command: RefreshCommand,
     service: Annotated[IdentityService, Depends(get_identity_service)],
@@ -224,7 +239,15 @@ async def confirm_password_reset(
     return MessageResponse(message="Password updated.")
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description=(
+        "Revokes the supplied refresh credential when it is valid. This operation is idempotent: a "
+        "structurally valid payload returns 204 even when the credential is expired, revoked, "
+        "or consumed."
+    ),
+)
 async def logout(
     command: LogoutCommand,
     service: Annotated[IdentityService, Depends(get_identity_service)],
