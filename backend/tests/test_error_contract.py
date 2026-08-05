@@ -72,6 +72,14 @@ def test_refresh_401_uses_session_code(api: TestClient) -> None:
     assert "not-a-real-token" not in response.text
 
 
+def test_logout_is_idempotent_and_openapi_does_not_advertise_401(api: TestClient) -> None:
+    response = api.post("/api/v1/auth/logout", json={"refresh_token": "not-a-real-token"})
+
+    assert response.status_code == 204
+    assert response.headers["X-Correlation-ID"]
+    assert "401" not in api.app.openapi()["paths"]["/api/v1/auth/logout"]["post"]["responses"]
+
+
 def test_authorization_403_uses_stable_code(api: TestClient) -> None:
     async def forbidden() -> None:
         raise HTTPException(status_code=403, detail="internal authorization reason")
