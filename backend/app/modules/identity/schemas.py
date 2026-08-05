@@ -24,11 +24,17 @@ class LoginCommand(BaseModel):
 
 
 class RefreshCommand(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(
+        description="Opaque refresh credential. A successful refresh rotates it immediately."
+    )
 
 
 class LogoutCommand(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(
+        description=(
+            "Opaque refresh credential. Logout is idempotent for a structurally valid payload."
+        )
+    )
 
 
 class VerifyEmailCommand(BaseModel):
@@ -62,7 +68,19 @@ class UserResponse(BaseModel):
 
 
 class TokenPair(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
+    access_token: str = Field(description="Opaque access credential.")
+    refresh_token: str = Field(
+        description=(
+            "Opaque refresh credential. Each successful refresh rotates this value; "
+            "the prior value becomes unusable immediately. The configured TTL is 30 days "
+            "by default."
+        )
+    )
+    token_type: str = Field(
+        default="bearer", description="Authorization scheme for access_token."
+    )
+    expires_in: int = Field(
+        description=(
+            "Lifetime in seconds of access_token; 900 seconds with the default configuration."
+        )
+    )
