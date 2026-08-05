@@ -77,6 +77,7 @@ def main() -> int:
         "/mobile",
         "/infrastructure/terraform",
         "/mobile/android",
+        "/apps/android",
     ):
         require(directory, dependabot, ".github/dependabot.yml", errors)
 

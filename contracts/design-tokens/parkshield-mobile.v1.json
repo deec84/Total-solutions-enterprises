@@ -1,0 +1,20 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "version": "1",
+  "color": {
+    "brand": { "value": "#155EEF" },
+    "surface": { "value": "#FFFFFF" },
+    "onSurface": { "value": "#101828" },
+    "danger": { "value": "#B42318" }
+  },
+  "spacing": {
+    "xs": { "value": 4 },
+    "sm": { "value": 8 },
+    "md": { "value": 16 },
+    "lg": { "value": 24 }
+  },
+  "radius": {
+    "sm": { "value": 8 },
+    "md": { "value": 12 }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "version": "1",
+  "code": "VALIDATION_FAILED",
+  "message": "Invalid request.",
+  "correlation_id": "fixture-validation-failed",
+  "details": [{"field": "password", "code": "MISSING_FIELD"}]
+}

@@ -89,3 +89,18 @@ updates:
       android-wrapper-minor-patch:
         patterns: ["*"]
         update-types: [minor, patch]
+
+  - package-ecosystem: gradle
+    directory: /apps/android
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:30"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    rebase-strategy: auto
+    labels: [dependencies]
+    groups:
+      native-android-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]

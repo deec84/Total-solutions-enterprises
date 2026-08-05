@@ -4,7 +4,7 @@
 
 ParkShield begins as a modular monolith: one deployable API with independently owned business modules. This keeps transactions and operations understandable while the product discovers stable scaling boundaries. Modules communicate through application interfaces and domain events, never through another module's tables.
 
-The mobile client uses feature-first Clean Architecture. The backend uses presentation, application, domain, and infrastructure layers. PostgreSQL is the authoritative transactional store and encrypted object storage holds governed community media outside the database. Media access uses privileged, short-lived grants; object keys remain internal, every access or purge is audited, and retention never exceeds 30 days. Provider interfaces isolate OCR, prediction, maps, email, and push delivery so independently scaled workers can be introduced without changing domain contracts.
+Android uses Kotlin with Jetpack Compose and iOS uses Swift with SwiftUI. Both clients use feature-first, layered architecture and consume the same REST contract below `/api/v1`; Flutter remains only a transition reference, not the final architecture. The backend uses presentation, application, domain, and infrastructure layers. PostgreSQL is the authoritative transactional store and encrypted object storage holds governed community media outside the database. Media access uses privileged, short-lived grants; object keys remain internal, every access or purge is audited, and retention never exceeds 30 days. Provider interfaces isolate OCR, prediction, maps, email, and push delivery so independently scaled workers can be introduced without changing domain contracts.
 
 ## Bounded contexts
 
@@ -32,13 +32,13 @@ Every answer carries provenance (`official`, `community_verified`, `ai_predictio
 
 ## API policy
 
-REST endpoints live below `/api/v1`. Schemas are explicit and backward compatible within a version. Errors will use RFC 9457 Problem Details. Write endpoints accept idempotency keys where duplicate physical events could cause harm.
+REST endpoints live below `/api/v1`. Schemas are explicit and backward compatible within a version. Errors use the versioned ParkShield error envelope documented in `docs/api-error-contract.md`. Write endpoints accept idempotency keys where duplicate physical events could cause harm.
 
 ## Deployment shape
 
 ```mermaid
 flowchart LR
-    M["Flutter iOS / Android"] --> CF["CloudFront HTTPS"]
+    M["Native Android / iOS"] --> CF["CloudFront HTTPS"]
     CF --> WAF["WAF + private origin policy"]
     WAF --> ALB["Application Load Balancer"]
     ALB --> ECS["ECS Fargate API in private subnets"]
