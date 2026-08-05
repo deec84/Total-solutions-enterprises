@@ -27,6 +27,8 @@ jobs:
         run: python3 scripts/check-observability-contracts.py
       - name: Verify native mobile foundation contracts and architecture
         run: python3 scripts/check-native-foundation.py
+      - name: Test native architecture guard
+        run: python3 scripts/test_check_native_foundation.py
 
   android-native:
     runs-on: ubuntu-latest
