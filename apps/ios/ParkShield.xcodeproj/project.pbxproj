@@ -13,11 +13,11 @@
 		A10000000000000000000006 /* SecureValueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* SecureValueStore.swift */; };
 
 		A20000000000000000000001 /* ParkShieldApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldApp/ParkShieldApp.swift; sourceTree = "<group>"; };
-		A20000000000000000000002 /* ParkShieldTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldTokens.swift; sourceTree = "<group>"; };
-		A20000000000000000000003 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
-		A20000000000000000000004 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
-		A20000000000000000000005 /* KeyValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyValueStore.swift; sourceTree = "<group>"; };
-		A20000000000000000000006 /* SecureValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureValueStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* ParkShieldTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Design/ParkShieldTokens.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Network/APIClient.swift; sourceTree = "<group>"; };
+		A20000000000000000000004 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Network/APIError.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* KeyValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence/KeyValueStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* SecureValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Security/SecureValueStore.swift; sourceTree = "<group>"; };
 		A20000000000000000000007 /* ParkShield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParkShield.app; sourceTree = BUILT_PRODUCTS_DIR; };
 
 		A30000000000000000000001 /* ParkShield */ = {
