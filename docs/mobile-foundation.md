@@ -16,6 +16,10 @@ Access and refresh credentials belong only in platform secure storage adapters i
 
 The foundation declares dependency-inverted network, secure-storage, and non-sensitive cache boundaries without selecting a transport, keychain/keystore adapter, database, or endpoint configuration. Feature state remains presentation-owned and will be introduced only with a tested vertical slice; navigation is likewise deferred until the first user flow.
 
+## Enforced layer direction
+
+For a feature, `presentation` may reference only its own `presentation`, `domain`, and `core`; `data` may reference only its own `data`, `domain`, and `core`; `domain` may reference only its own `domain`; and `core` may reference only `core`. The architecture guard rejects Kotlin package references and Swift feature-module or feature-path references that cross those boundaries. This preserves the inward direction and prevents presentation from reaching data directly.
+
 ## Testing strategy
 
 Native unit tests validate error decoding, design-token mapping, and layer boundaries. Repository checks validate fixture safety, snapshot presence, and source-tree rules. CI compiles Android debug and iOS simulator targets without signing. Integration tests will be added with the first networking vertical after deterministic endpoint configuration exists.
