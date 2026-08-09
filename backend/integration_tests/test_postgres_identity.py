@@ -183,6 +183,47 @@ def test_authentication_http_round_trip_uses_postgresql() -> None:
     run_isolated_scenario(scenario)
 
 
+def test_postgresql_refresh_is_single_use_under_concurrent_requests() -> None:
+    async def scenario() -> None:
+        application = create_app()
+        transport = httpx.ASGITransport(app=application)
+        email = f"refresh-race-{uuid4()}@example.com"
+        credentials = {"email": email, "password": "integration-password"}
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            registration = await client.post("/api/v1/auth/register", json=credentials)
+            assert registration.status_code == 201
+
+            async with session_factory() as session, session.begin():
+                user = await SqlUserRepository(session).get_by_email(email)
+                assert user is not None
+                await SqlUserRepository(session).mark_verified(user.id)
+
+            login = await client.post("/api/v1/auth/login", json=credentials)
+            assert login.status_code == 200
+            refresh_token = login.json()["refresh_token"]
+            first, second = await asyncio.gather(
+                client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token}),
+                client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token}),
+            )
+
+            responses = (first, second)
+            successes = [response for response in responses if response.status_code == 200]
+            failures = [response for response in responses if response.status_code == 401]
+            assert len(successes) == 1
+            assert len(failures) == 1
+            assert {"access_token", "refresh_token", "token_type", "expires_in"} <= set(
+                successes[0].json()
+            )
+            assert failures[0].json()["version"] == "1"
+            assert failures[0].json()["code"] == "SESSION_INVALID"
+            assert failures[0].json()["correlation_id"]
+
+            async with session_factory() as session, session.begin():
+                await session.execute(delete(UserRow).where(UserRow.email == email))
+
+    run_isolated_scenario(scenario)
+
+
 def test_community_report_reputation_and_appeal_round_trip() -> None:
     async def scenario() -> None:
         user_id = uuid4()
