@@ -11,6 +11,11 @@
 		A10000000000000000000004 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* APIError.swift */; };
 		A10000000000000000000005 /* KeyValueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* KeyValueStore.swift */; };
 		A10000000000000000000006 /* SecureValueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* SecureValueStore.swift */; };
+		A10000000000000000000007 /* APIBaseURLProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* APIBaseURLProvider.swift */; };
+		A10000000000000000000008 /* AuthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* AuthModels.swift */; };
+		A10000000000000000000009 /* RestAuthenticationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* RestAuthenticationRepository.swift */; };
+		A10000000000000000000010 /* SecureSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* SecureSessionStore.swift */; };
+		A10000000000000000000011 /* SessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* SessionController.swift */; };
 
 		A20000000000000000000001 /* ParkShieldApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldApp/ParkShieldApp.swift; sourceTree = "<group>"; };
 		A20000000000000000000002 /* ParkShieldTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Design/ParkShieldTokens.swift; sourceTree = "<group>"; };
@@ -19,11 +24,21 @@
 		A20000000000000000000005 /* KeyValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence/KeyValueStore.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* SecureValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Security/SecureValueStore.swift; sourceTree = "<group>"; };
 		A20000000000000000000007 /* ParkShield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParkShield.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000008 /* APIBaseURLProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Core/Network/APIBaseURLProvider.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Feature/Auth/Domain/AuthModels.swift; sourceTree = "<group>"; };
+		A20000000000000000000010 /* RestAuthenticationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Feature/Auth/Data/RestAuthenticationRepository.swift; sourceTree = "<group>"; };
+		A20000000000000000000011 /* SecureSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Feature/Auth/Data/SecureSessionStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000012 /* SessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Feature/Auth/Data/SessionController.swift; sourceTree = "<group>"; };
 
 		A30000000000000000000001 /* ParkShield */ = {
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000001 /* ParkShieldApp.swift */,
+				A20000000000000000000008 /* APIBaseURLProvider.swift */,
+				A20000000000000000000009 /* AuthModels.swift */,
+				A20000000000000000000010 /* RestAuthenticationRepository.swift */,
+				A20000000000000000000011 /* SecureSessionStore.swift */,
+				A20000000000000000000012 /* SessionController.swift */,
 				A30000000000000000000002 /* Core */,
 			);
 			path = Sources;
@@ -56,7 +71,7 @@
 			productType = "com.apple.product-type.application";
 		};
 
-		A60000000000000000000001 /* Sources */ = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* ParkShieldApp.swift in Sources */, A10000000000000000000002 /* ParkShieldTokens.swift in Sources */, A10000000000000000000003 /* APIClient.swift in Sources */, A10000000000000000000004 /* APIError.swift in Sources */, A10000000000000000000005 /* KeyValueStore.swift in Sources */, A10000000000000000000006 /* SecureValueStore.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+		A60000000000000000000001 /* Sources */ = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* ParkShieldApp.swift in Sources */, A10000000000000000000002 /* ParkShieldTokens.swift in Sources */, A10000000000000000000003 /* APIClient.swift in Sources */, A10000000000000000000004 /* APIError.swift in Sources */, A10000000000000000000005 /* KeyValueStore.swift in Sources */, A10000000000000000000006 /* SecureValueStore.swift in Sources */, A10000000000000000000007 /* APIBaseURLProvider.swift in Sources */, A10000000000000000000008 /* AuthModels.swift in Sources */, A10000000000000000000009 /* RestAuthenticationRepository.swift in Sources */, A10000000000000000000010 /* SecureSessionStore.swift in Sources */, A10000000000000000000011 /* SessionController.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
 
 		A50000000000000000000002 /* Debug */ = { isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 6.0; }; name = Debug; };
 		A50000000000000000000003 /* Release */ = { isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 6.0; }; name = Release; };

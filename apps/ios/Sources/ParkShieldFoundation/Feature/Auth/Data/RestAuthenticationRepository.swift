@@ -1,15 +1,16 @@
 import Foundation
 
-struct RestAuthenticationRepository: AuthenticationRepository {
+public struct RestAuthenticationRepository: AuthenticationRepository {
     let client: any APIClient
-    func login(email: String, password: String) async -> Result<TokenPair, AuthFailure> { await pair("/api/v1/auth/login", ["email": email, "password": password]) }
-    func refresh(refreshToken: String) async -> Result<TokenPair, AuthFailure> { await pair("/api/v1/auth/refresh", ["refresh_token": refreshToken]) }
-    func logout(refreshToken: String) async -> Result<Void, AuthFailure> {
+    public init(client: any APIClient) { self.client = client }
+    public func login(email: String, password: String) async -> Result<TokenPair, AuthFailure> { await pair("/api/v1/auth/login", ["email": email, "password": password]) }
+    public func refresh(refreshToken: String) async -> Result<TokenPair, AuthFailure> { await pair("/api/v1/auth/refresh", ["refresh_token": refreshToken]) }
+    public func logout(refreshToken: String) async -> Result<Void, AuthFailure> {
         await execute(APIRequest(method: "POST", path: "/api/v1/auth/logout", body: json(["refresh_token": refreshToken]))) { result in
             if case .success(let status, _) = result, status == 204 { return .success(()) }; return .failure(self.failure(result))
         }
     }
-    func profile(accessToken: String) async -> Result<AuthenticatedUser, AuthFailure> {
+    public func profile(accessToken: String) async -> Result<AuthenticatedUser, AuthFailure> {
         await execute(APIRequest(method: "GET", path: "/api/v1/auth/me", headers: ["Authorization": "Bearer \(accessToken)"])) { result in
             guard case .success(_, let data) = result, let user = try? JSONDecoder().decode(AuthenticatedUser.self, from: data) else { return .failure(self.failure(result)) }; return .success(user)
         }
