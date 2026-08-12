@@ -42,6 +42,13 @@ class LayerDependencyTests(unittest.TestCase):
         project = "CODE_SIGN_STYLE = Automatic; CODE_SIGNING_ALLOWED = NO; CODE_SIGNING_REQUIRED = NO;"
         self.assertEqual(CHECK.ios_signing_violations(project), {"CODE_SIGN_STYLE"})
 
+    def test_rejects_real_endpoint_and_token_logging(self) -> None:
+        self.assertTrue(any(pattern.search("https://api.example.test") for pattern in CHECK.FORBIDDEN_AUTH_SOURCE_PATTERNS))
+        self.assertTrue(any(pattern.search("Log.d(\"auth\", refresh_token)") for pattern in CHECK.FORBIDDEN_AUTH_SOURCE_PATTERNS))
+
+    def test_allows_versioned_relative_endpoint_without_token_logging(self) -> None:
+        self.assertFalse(any(pattern.search("ApiRequest(\"POST\", \"/api/v1/auth/refresh\")") for pattern in CHECK.FORBIDDEN_AUTH_SOURCE_PATTERNS))
+
 
 if __name__ == "__main__":
     unittest.main()

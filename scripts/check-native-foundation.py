@@ -18,6 +18,11 @@ ALLOWED_LAYER_DEPENDENCIES = {
     "data": frozenset({"data", "domain", "core"}),
     "core": frozenset({"core"}),
 }
+FORBIDDEN_AUTH_SOURCE_PATTERNS = (
+    re.compile(r"https?://", re.IGNORECASE),
+    re.compile(r"\b(?:println|print|Log\.[A-Za-z]+|os_log|NSLog)\s*\([^\n]*(?:access|refresh)[_-]?token", re.IGNORECASE),
+    re.compile(r"(?:SharedPreferences|UserDefaults)[\s\S]{0,160}(?:access|refresh)[_-]?token", re.IGNORECASE),
+)
 KOTLIN_LAYER_REFERENCE = re.compile(
     r"\bfeature\.[A-Za-z0-9_]+\.(presentation|domain|data|core)\b"
 )
@@ -94,6 +99,23 @@ def verify_layer_dependencies(source_root: Path) -> None:
             fail(f"forbidden layer dependency from {source.relative_to(ROOT)} to {layers}")
 
 
+def verify_auth_security_boundary() -> None:
+    """Keep token handling local to secure-store and transport boundaries, with no real host or logging."""
+    roots = (
+        ROOT / "apps/android/app/src/main/kotlin/ai/parkshield/android/feature/auth",
+        ROOT / "apps/android/app/src/main/kotlin/ai/parkshield/android/core/security",
+        ROOT / "apps/ios/Sources/ParkShieldFoundation/Feature/Auth",
+        ROOT / "apps/ios/Sources/ParkShieldFoundation/Core/Security",
+    )
+    for root in roots:
+        for source in root.rglob("*"):
+            if source.suffix not in {".kt", ".swift"}:
+                continue
+            content = source.read_text(encoding="utf-8")
+            if any(pattern.search(content) for pattern in FORBIDDEN_AUTH_SOURCE_PATTERNS):
+                fail(f"unsafe token handling or endpoint in {source.relative_to(ROOT)}")
+
+
 def ios_signing_violations(project: str) -> set[str]:
     forbidden = {
         "CODE_SIGN_STYLE",
@@ -156,6 +178,8 @@ def main() -> None:
             ):
                 fail(f"Flutter reference in native source: {source.relative_to(ROOT)}")
         verify_layer_dependencies(source_root)
+
+    verify_auth_security_boundary()
 
     print("Native mobile foundation contracts and architecture checks passed.")
 
