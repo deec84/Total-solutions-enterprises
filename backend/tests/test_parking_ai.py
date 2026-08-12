@@ -28,7 +28,9 @@ class ZoneRepository:
     ) -> tuple[ParkingZone, ...]:
         return (self.zone,) if self.zone is not None else ()
 
-    async def at_location(self, longitude: float, latitude: float) -> ParkingZone | None:
+    async def at_location(
+        self, longitude: float, latitude: float, *, include_expired: bool = False
+    ) -> ParkingZone | None:
         return self.zone
 
 

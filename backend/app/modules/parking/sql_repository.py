@@ -28,7 +28,9 @@ class SqlParkingZoneRepository:
         rows = (await self._session.execute(statement)).all()
         return tuple(self._map(row, geojson) for row, geojson in rows)
 
-    async def at_location(self, longitude: float, latitude: float) -> ParkingZone | None:
+    async def at_location(
+        self, longitude: float, latitude: float, *, include_expired: bool = False
+    ) -> ParkingZone | None:
         point = func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326)
         provenance_priority = case(
             (ParkingZoneRow.provenance == Provenance.OFFICIAL.value, 0),
@@ -38,14 +40,15 @@ class SqlParkingZoneRepository:
         )
         statement = (
             select(ParkingZoneRow, func.ST_AsGeoJSON(ParkingZoneRow.geometry))
-            .where(
-                func.ST_Covers(ParkingZoneRow.geometry, point),
-                (ParkingZoneRow.expires_at.is_(None))
-                | (ParkingZoneRow.expires_at > func.now()),
-            )
+            .where(func.ST_Covers(ParkingZoneRow.geometry, point))
             .order_by(provenance_priority, ParkingZoneRow.parking_score)
             .limit(1)
         )
+        if not include_expired:
+            statement = statement.where(
+                (ParkingZoneRow.expires_at.is_(None))
+                | (ParkingZoneRow.expires_at > func.now())
+            )
         result = (await self._session.execute(statement)).first()
         return self._map(result[0], result[1]) if result is not None else None
 
@@ -64,4 +67,6 @@ class SqlParkingZoneRepository:
             towing_hotspot=row.towing_hotspot,
             observed_at=row.observed_at,
             expires_at=row.expires_at,
+            source_id=row.source_id,
+            import_batch_id=row.import_batch_id,
         )
