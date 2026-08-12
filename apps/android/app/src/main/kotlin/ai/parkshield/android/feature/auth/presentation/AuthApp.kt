@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import ai.parkshield.android.feature.auth.domain.AuthFailure
 import kotlinx.coroutines.launch
 
-@Composable
 sealed interface AuthUiState { data object Restoring : AuthUiState; data object SignedOut : AuthUiState; data object SignedIn : AuthUiState; data class Failed(val error: AuthFailure) : AuthUiState }
 
 @Composable

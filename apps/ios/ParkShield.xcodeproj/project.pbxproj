@@ -24,11 +24,11 @@
 		A20000000000000000000005 /* KeyValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence/KeyValueStore.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* SecureValueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Security/SecureValueStore.swift; sourceTree = "<group>"; };
 		A20000000000000000000007 /* ParkShield.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParkShield.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A20000000000000000000008 /* APIBaseURLProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Network/APIBaseURLProvider.swift; sourceTree = "<group>"; };
-		A20000000000000000000009 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feature/Auth/Domain/AuthModels.swift; sourceTree = "<group>"; };
-		A20000000000000000000010 /* RestAuthenticationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feature/Auth/Data/RestAuthenticationRepository.swift; sourceTree = "<group>"; };
-		A20000000000000000000011 /* SecureSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feature/Auth/Data/SecureSessionStore.swift; sourceTree = "<group>"; };
-		A20000000000000000000012 /* SessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feature/Auth/Data/SessionController.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* APIBaseURLProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Core/Network/APIBaseURLProvider.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* AuthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Feature/Auth/Domain/AuthModels.swift; sourceTree = "<group>"; };
+		A20000000000000000000010 /* RestAuthenticationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Feature/Auth/Data/RestAuthenticationRepository.swift; sourceTree = "<group>"; };
+		A20000000000000000000011 /* SecureSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Feature/Auth/Data/SecureSessionStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000012 /* SessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkShieldFoundation/Feature/Auth/Data/SessionController.swift; sourceTree = "<group>"; };
 
 		A30000000000000000000001 /* ParkShield */ = {
 			isa = PBXGroup;
