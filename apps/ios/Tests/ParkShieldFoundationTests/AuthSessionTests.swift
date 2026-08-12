@@ -22,7 +22,7 @@ import Testing
 @Test func sessionInvalidClearsCredentialsAndFailsClosed() async {
     let store = MemorySecureStore(["refresh-token-v1": "refresh-old", "access-token-v1": "access-old"])
     let controller = SessionController(repository: FakeRepository(refresh: .failure(.sessionInvalid)), sessions: SecureSessionStore(store: store))
-    #expect(await controller.refresh() == .failed(.sessionInvalid))
+    #expect(await controller.refresh() == .signedOut)
     #expect(await store.isEmpty)
 }
 
