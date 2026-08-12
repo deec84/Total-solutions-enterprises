@@ -41,13 +41,20 @@ class SessionControllerTest {
         val states = List(8) { async { controller.refresh() } }.awaitAll()
         assertTrue(states.all { it == SessionState.SignedIn })
         assertEquals(1, repository.refreshCalls.get())
+        assertEquals(SessionState.SignedIn, controller.refresh())
+        assertEquals(2, repository.refreshCalls.get())
     }
 
-    @Test fun `session invalid clears credentials and is terminal`() = runBlocking {
+    @Test fun `concurrent session invalid is shared and clears credentials`() = runBlocking {
         val secure = MemorySecureStore(mapOf("refresh-token-v1" to "old-refresh", "access-token-v1" to "old-access"))
-        val controller = SessionController(FakeRepository(refreshResult = AuthResult.Failure(AuthFailure.SessionInvalid)), SecureSessionStore(secure))
-        assertEquals(SessionState.Failed(AuthFailure.SessionInvalid), controller.refresh())
+        val repository = FakeRepository(refreshResult = AuthResult.Failure(AuthFailure.SessionInvalid), refreshDelay = true)
+        val controller = SessionController(repository, SecureSessionStore(secure))
+        val states = List(2) { async { controller.refresh() } }.awaitAll()
+        assertTrue(states.all { it == SessionState.SignedOut })
+        assertEquals(1, repository.refreshCalls.get())
         assertTrue(secure.values.isEmpty())
+        assertEquals(SessionState.SignedOut, controller.refresh())
+        assertEquals(1, repository.refreshCalls.get())
     }
 
     @Test fun `logout invokes remote endpoint then clears credentials even on remote failure`() = runBlocking {
