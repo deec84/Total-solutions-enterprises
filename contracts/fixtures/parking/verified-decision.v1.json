@@ -1,0 +1,22 @@
+{
+  "outcome": "PARK",
+  "coverage_status": "VERIFIED_COVERAGE",
+  "reasons": [
+    {
+      "code": "OFFICIAL_RESTRICTION",
+      "message": "Official parking evidence is current for this location."
+    }
+  ],
+  "evidence": {
+    "zone_id": "synthetic-zone-not-official",
+    "zone_type": "general",
+    "provenance": "official",
+    "confidence": 1.0,
+    "observed_at": "2026-01-15T12:00:00Z",
+    "expires_at": "2026-01-15T14:00:00Z",
+    "source_id": "synthetic-source-not-official",
+    "import_batch_id": "synthetic-batch-not-official",
+    "restriction_summary": "Synthetic fixture only; not municipal parking evidence."
+  },
+  "evaluated_at": "2026-01-15T12:01:00Z"
+}

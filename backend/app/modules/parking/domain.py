@@ -31,6 +31,36 @@ class ZoneType(StrEnum):
     TOWING_HOTSPOT = "towing_hotspot"
 
 
+class ParkingDecisionOutcome(StrEnum):
+    PARK = "PARK"
+    CAUTION = "CAUTION"
+    DO_NOT_PARK = "DO_NOT_PARK"
+    INDETERMINATE = "INDETERMINATE"
+
+
+class CoverageStatus(StrEnum):
+    VERIFIED_COVERAGE = "VERIFIED_COVERAGE"
+    NO_VERIFIED_COVERAGE = "NO_VERIFIED_COVERAGE"
+    STALE_DATA = "STALE_DATA"
+    LOCATION_PRECISION_INSUFFICIENT = "LOCATION_PRECISION_INSUFFICIENT"
+    UNVERIFIABLE_SOURCE = "UNVERIFIABLE_SOURCE"
+    LOCATION_CONSENT_REQUIRED = "LOCATION_CONSENT_REQUIRED"
+    LOCATION_STALE = "LOCATION_STALE"
+
+
+class ParkingDecisionReasonCode(StrEnum):
+    OFFICIAL_RESTRICTION = "OFFICIAL_RESTRICTION"
+    RESIDENT_PERMIT_REQUIRED = "RESIDENT_PERMIT_REQUIRED"
+    TOWING_RISK = "TOWING_RISK"
+    NO_VERIFIED_COVERAGE = "NO_VERIFIED_COVERAGE"
+    STALE_DATA = "STALE_DATA"
+    LOCATION_PRECISION_INSUFFICIENT = "LOCATION_PRECISION_INSUFFICIENT"
+    DECISION_INDETERMINATE = "DECISION_INDETERMINATE"
+    UNVERIFIABLE_SOURCE = "UNVERIFIABLE_SOURCE"
+    LOCATION_CONSENT_REQUIRED = "LOCATION_CONSENT_REQUIRED"
+    LOCATION_STALE = "LOCATION_STALE"
+
+
 def risk_level(score: int) -> RiskLevel:
     if not 0 <= score <= 100:
         raise ValueError("parking score must be between 0 and 100")
@@ -61,6 +91,8 @@ class ParkingZone:
     towing_hotspot: bool
     observed_at: datetime
     expires_at: datetime | None
+    source_id: UUID | None = None
+    import_batch_id: UUID | None = None
 
     @property
     def risk_level(self) -> RiskLevel:
@@ -72,4 +104,6 @@ class ParkingZoneRepository(Protocol):
         self, west: float, south: float, east: float, north: float, limit: int
     ) -> tuple[ParkingZone, ...]: ...
 
-    async def at_location(self, longitude: float, latitude: float) -> ParkingZone | None: ...
+    async def at_location(
+        self, longitude: float, latitude: float, *, include_expired: bool = False
+    ) -> ParkingZone | None: ...

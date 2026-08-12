@@ -32,7 +32,9 @@ class FakeZoneRepository:
         self.received_limit = limit
         return self.zones
 
-    async def at_location(self, longitude: float, latitude: float) -> ParkingZone | None:
+    async def at_location(
+        self, longitude: float, latitude: float, *, include_expired: bool = False
+    ) -> ParkingZone | None:
         return self.zones[0] if self.zones else None
 
 
@@ -133,7 +135,10 @@ def test_point_decision_returns_trust_metadata() -> None:
     with TestClient(application) as client:
         response = client.get(
             "/api/v1/parking/decision",
-            params={"latitude": 25.7617, "longitude": -80.1918},
+            params={
+                "latitude": 25.7617,
+                "longitude": -80.1918,
+            },
         )
 
     assert response.status_code == 200

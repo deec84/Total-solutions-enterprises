@@ -5,7 +5,14 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.modules.parking.domain import Provenance, RiskLevel, ZoneType
+from app.modules.parking.domain import (
+    CoverageStatus,
+    ParkingDecisionOutcome,
+    ParkingDecisionReasonCode,
+    Provenance,
+    RiskLevel,
+    ZoneType,
+)
 
 
 class ParkingZoneResponse(BaseModel):
@@ -28,7 +35,34 @@ class ParkingViewportResponse(BaseModel):
     zones: list[ParkingZoneResponse]
 
 
+class ParkingDecisionReasonResponse(BaseModel):
+    code: ParkingDecisionReasonCode
+    message: str = Field(min_length=1, max_length=160)
+
+
+class ParkingDecisionEvidenceResponse(BaseModel):
+    zone_id: str
+    zone_type: ZoneType
+    provenance: Provenance
+    confidence: float = Field(ge=0, le=1)
+    observed_at: datetime
+    expires_at: datetime | None
+    source_id: str | None = None
+    import_batch_id: str | None = None
+    restriction_summary: str | None
+
+
 class ParkingDecisionResponse(BaseModel):
+    outcome: ParkingDecisionOutcome
+    coverage_status: CoverageStatus
+    reasons: list[ParkingDecisionReasonResponse] = Field(min_length=1, max_length=8)
+    evidence: ParkingDecisionEvidenceResponse | None = None
+    evaluated_at: datetime
+
+
+class LegacyParkingDecisionResponse(BaseModel):
+    """Deprecated map response retained while Flutter remains a transition reference."""
+
     covered: bool
     message: str
     zone: ParkingZoneResponse | None = None

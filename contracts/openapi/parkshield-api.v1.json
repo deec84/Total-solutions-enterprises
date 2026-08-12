@@ -430,6 +430,19 @@
         "title": "ConsentResponse",
         "type": "object"
       },
+      "CoverageStatus": {
+        "enum": [
+          "VERIFIED_COVERAGE",
+          "NO_VERIFIED_COVERAGE",
+          "STALE_DATA",
+          "LOCATION_PRECISION_INSUFFICIENT",
+          "UNVERIFIABLE_SOURCE",
+          "LOCATION_CONSENT_REQUIRED",
+          "LOCATION_STALE"
+        ],
+        "title": "CoverageStatus",
+        "type": "string"
+      },
       "DataExportResponse": {
         "properties": {
           "data": {
@@ -608,7 +621,11 @@
           "UNSUPPORTED_MEDIA_TYPE",
           "PAYLOAD_TOO_LARGE",
           "SERVICE_UNAVAILABLE",
-          "INTERNAL_ERROR"
+          "INTERNAL_ERROR",
+          "NO_VERIFIED_COVERAGE",
+          "STALE_DATA",
+          "LOCATION_PRECISION_INSUFFICIENT",
+          "DECISION_INDETERMINATE"
         ],
         "title": "ErrorCode",
         "type": "string"
@@ -773,6 +790,35 @@
         ],
         "title": "ImportStatus",
         "type": "string"
+      },
+      "LegacyParkingDecisionResponse": {
+        "description": "Deprecated map response retained while Flutter remains a transition reference.",
+        "properties": {
+          "covered": {
+            "title": "Covered",
+            "type": "boolean"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "zone": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParkingZoneResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "covered",
+          "message"
+        ],
+        "title": "LegacyParkingDecisionResponse",
+        "type": "object"
       },
       "LocationEvaluation": {
         "properties": {
@@ -1222,30 +1268,170 @@
         "title": "ParkingAssistantResponse",
         "type": "object"
       },
-      "ParkingDecisionResponse": {
+      "ParkingDecisionEvidenceResponse": {
         "properties": {
-          "covered": {
-            "title": "Covered",
-            "type": "boolean"
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
           },
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "zone": {
+          "expires_at": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ParkingZoneResponse"
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "import_batch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Batch Id"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
+          },
+          "restriction_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restriction Summary"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "zone_id": {
+            "title": "Zone Id",
+            "type": "string"
+          },
+          "zone_type": {
+            "$ref": "#/components/schemas/ZoneType"
+          }
+        },
+        "required": [
+          "zone_id",
+          "zone_type",
+          "provenance",
+          "confidence",
+          "observed_at",
+          "expires_at",
+          "restriction_summary"
+        ],
+        "title": "ParkingDecisionEvidenceResponse",
+        "type": "object"
+      },
+      "ParkingDecisionOutcome": {
+        "enum": [
+          "PARK",
+          "CAUTION",
+          "DO_NOT_PARK",
+          "INDETERMINATE"
+        ],
+        "title": "ParkingDecisionOutcome",
+        "type": "string"
+      },
+      "ParkingDecisionReasonCode": {
+        "enum": [
+          "OFFICIAL_RESTRICTION",
+          "RESIDENT_PERMIT_REQUIRED",
+          "TOWING_RISK",
+          "NO_VERIFIED_COVERAGE",
+          "STALE_DATA",
+          "LOCATION_PRECISION_INSUFFICIENT",
+          "DECISION_INDETERMINATE",
+          "UNVERIFIABLE_SOURCE",
+          "LOCATION_CONSENT_REQUIRED",
+          "LOCATION_STALE"
+        ],
+        "title": "ParkingDecisionReasonCode",
+        "type": "string"
+      },
+      "ParkingDecisionReasonResponse": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ParkingDecisionReasonCode"
+          },
+          "message": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ParkingDecisionReasonResponse",
+        "type": "object"
+      },
+      "ParkingDecisionResponse": {
+        "properties": {
+          "coverage_status": {
+            "$ref": "#/components/schemas/CoverageStatus"
+          },
+          "evaluated_at": {
+            "format": "date-time",
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ParkingDecisionEvidenceResponse"
               },
               {
                 "type": "null"
               }
             ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ParkingDecisionOutcome"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/ParkingDecisionReasonResponse"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Reasons",
+            "type": "array"
           }
         },
         "required": [
-          "covered",
-          "message"
+          "outcome",
+          "coverage_status",
+          "reasons",
+          "evaluated_at"
         ],
         "title": "ParkingDecisionResponse",
         "type": "object"
@@ -6555,7 +6741,8 @@
     },
     "/api/v1/parking/decision": {
       "get": {
-        "operationId": "parking_decision_api_v1_parking_decision_get",
+        "deprecated": true,
+        "operationId": "legacy_parking_decision_api_v1_parking_decision_get",
         "parameters": [
           {
             "in": "query",
@@ -6577,6 +6764,206 @@
               "minimum": -180,
               "title": "Longitude",
               "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyParkingDecisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Access is denied."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Resource not found."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request conflicts with current state."
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Payload is too large."
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unsupported media type."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too many requests."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service is temporarily unavailable."
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Legacy Parking Decision",
+        "tags": [
+          "parking-map"
+        ]
+      }
+    },
+    "/api/v1/parking/decision/evaluate": {
+      "get": {
+        "operationId": "evaluate_parking_decision_api_v1_parking_decision_evaluate_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "latitude",
+            "required": true,
+            "schema": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Latitude",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "longitude",
+            "required": true,
+            "schema": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Longitude",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "accuracy_meters",
+            "required": true,
+            "schema": {
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Accuracy Meters",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "located_at",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "title": "Located At",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "location_consent",
+            "required": true,
+            "schema": {
+              "title": "Location Consent",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "has_resident_permit",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Has Resident Permit",
+              "type": "boolean"
             }
           }
         ],
@@ -6707,7 +7094,7 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Parking Decision",
+        "summary": "Evaluate Parking Decision",
         "tags": [
           "parking-map"
         ]

@@ -116,37 +116,67 @@ def test_migrated_postgis_identity_repository_round_trip() -> None:
 
 def test_postgis_zone_viewport_and_point_queries() -> None:
     async def scenario() -> None:
-        zone_id = uuid4()
+        zone_id, expired_zone_id = uuid4(), uuid4()
         async with session_factory() as session, session.begin():
-            session.add(
-                ParkingZoneRow(
-                    id=zone_id,
-                    name="Integration curb zone",
-                    zone_type="towing_hotspot",
-                    geometry=WKTElement(
-                        "POLYGON((-80.20 25.70,-80.10 25.70,-80.10 25.80,"
-                        "-80.20 25.80,-80.20 25.70))",
-                        srid=4326,
+            session.add_all(
+                [
+                    ParkingZoneRow(
+                        id=zone_id,
+                        name="Integration curb zone",
+                        zone_type="towing_hotspot",
+                        geometry=WKTElement(
+                            "POLYGON((-80.20 25.70,-80.10 25.70,-80.10 25.80,"
+                            "-80.20 25.80,-80.20 25.70))",
+                            srid=4326,
+                        ),
+                        parking_score=20,
+                        provenance="official",
+                        confidence=1.0,
+                        restriction_summary="Tow-away zone",
+                        average_towing_cost_cents=25000,
+                        towing_hotspot=True,
+                        observed_at=datetime.now(UTC),
+                        expires_at=None,
                     ),
-                    parking_score=20,
-                    provenance="official",
-                    confidence=1.0,
-                    restriction_summary="Tow-away zone",
-                    average_towing_cost_cents=25000,
-                    towing_hotspot=True,
-                    observed_at=datetime.now(UTC),
-                    expires_at=None,
-                )
+                    ParkingZoneRow(
+                        id=expired_zone_id,
+                        name="Expired integration curb zone",
+                        zone_type="general",
+                        geometry=WKTElement(
+                            "POLYGON((-80.30 25.60,-80.25 25.60,-80.25 25.65,"
+                            "-80.30 25.65,-80.30 25.60))",
+                            srid=4326,
+                        ),
+                        parking_score=90,
+                        provenance="official",
+                        confidence=1.0,
+                        restriction_summary="Expired temporary restriction",
+                        average_towing_cost_cents=None,
+                        towing_hotspot=False,
+                        observed_at=datetime.now(UTC) - timedelta(hours=2),
+                        expires_at=datetime.now(UTC) - timedelta(minutes=1),
+                    ),
+                ]
             )
 
         async with session_factory() as session, session.begin():
             repository = SqlParkingZoneRepository(session)
             zones = await repository.in_viewport(-80.3, 25.6, -80.0, 25.9, 100)
             decision = await repository.at_location(-80.15, 25.75)
+            current_absent = await repository.at_location(-80.275, 25.625)
+            expired = await repository.at_location(
+                -80.275, 25.625, include_expired=True
+            )
             assert any(zone.id == zone_id for zone in zones)
             assert decision is not None and decision.id == zone_id
             assert decision.towing_hotspot is True
-            await session.execute(delete(ParkingZoneRow).where(ParkingZoneRow.id == zone_id))
+            assert current_absent is None
+            assert expired is not None and expired.id == expired_zone_id
+            await session.execute(
+                delete(ParkingZoneRow).where(
+                    ParkingZoneRow.id.in_((zone_id, expired_zone_id))
+                )
+            )
 
     run_isolated_scenario(scenario)
 

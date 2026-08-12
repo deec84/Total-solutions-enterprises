@@ -33,6 +33,10 @@ Every handled ParkShield REST API error returns the same versioned, privacy-safe
 | `PAYLOAD_TOO_LARGE` | 413 | Reduce payload size. |
 | `SERVICE_UNAVAILABLE` | 503 | Retry with bounded backoff. |
 | `INTERNAL_ERROR` | 500 | Show a generic failure and retain `correlation_id` for support. |
+| `NO_VERIFIED_COVERAGE` | Decision reason | Render `INDETERMINATE`; do not infer that parking is permitted. |
+| `STALE_DATA` | Decision reason | Render `INDETERMINATE`; evidence is not current. |
+| `LOCATION_PRECISION_INSUFFICIENT` | Decision reason | Ask for a more accurate foreground location. |
+| `DECISION_INDETERMINATE` | Decision reason | Do not reinterpret uncertainty as permission to park. |
 
 ## Compatibility and evolution
 

@@ -1,6 +1,7 @@
 """Interactive parking-map HTTP adapter."""
 
 import json
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -10,11 +11,19 @@ from app.infrastructure.database import database_session
 from app.modules.identity.domain import User
 from app.modules.parking.domain import ParkingZone
 from app.modules.parking.schemas import (
+    LegacyParkingDecisionResponse,
+    ParkingDecisionEvidenceResponse,
+    ParkingDecisionReasonResponse,
     ParkingDecisionResponse,
     ParkingViewportResponse,
     ParkingZoneResponse,
 )
-from app.modules.parking.service import InvalidViewportError, ParkingMapService
+from app.modules.parking.service import (
+    InvalidViewportError,
+    ParkingDecision,
+    ParkingDecisionService,
+    ParkingMapService,
+)
 from app.modules.parking.sql_repository import SqlParkingZoneRepository
 from app.presentation.api.routes.auth import current_user
 
@@ -45,6 +54,12 @@ def parking_map_service(
     return ParkingMapService(SqlParkingZoneRepository(session))
 
 
+def parking_decision_service(
+    map_service: Annotated[ParkingMapService, Depends(parking_map_service)],
+) -> ParkingDecisionService:
+    return ParkingDecisionService(map_service)
+
+
 @router.get("/zones", response_model=ParkingViewportResponse)
 async def viewport(
     _: Annotated[User, Depends(current_user)],
@@ -67,23 +82,74 @@ async def viewport(
     )
 
 
-@router.get("/decision", response_model=ParkingDecisionResponse)
-async def parking_decision(
+@router.get("/decision", response_model=LegacyParkingDecisionResponse, deprecated=True)
+async def legacy_parking_decision(
     _: Annotated[User, Depends(current_user)],
     service: Annotated[ParkingMapService, Depends(parking_map_service)],
     response: Response,
     latitude: Annotated[float, Query(ge=-90, le=90)],
     longitude: Annotated[float, Query(ge=-180, le=180)],
-) -> ParkingDecisionResponse:
+) -> LegacyParkingDecisionResponse:
     response.headers["Cache-Control"] = "no-store"
     zone = await service.decision(longitude, latitude)
     if zone is None:
-        return ParkingDecisionResponse(
+        return LegacyParkingDecisionResponse(
             covered=False,
             message="No verified parking intelligence covers this location. Read all signs.",
         )
-    return ParkingDecisionResponse(
+    return LegacyParkingDecisionResponse(
         covered=True,
         message="Parking intelligence found for this location.",
         zone=zone_response(zone),
+    )
+
+
+@router.get("/decision/evaluate", response_model=ParkingDecisionResponse)
+async def evaluate_parking_decision(
+    _: Annotated[User, Depends(current_user)],
+    service: Annotated[ParkingDecisionService, Depends(parking_decision_service)],
+    response: Response,
+    latitude: Annotated[float, Query(ge=-90, le=90)],
+    longitude: Annotated[float, Query(ge=-180, le=180)],
+    accuracy_meters: Annotated[float, Query(ge=0, le=10_000)],
+    located_at: datetime,
+    location_consent: bool,
+    has_resident_permit: bool = False,
+) -> ParkingDecisionResponse:
+    response.headers["Cache-Control"] = "no-store"
+    decision = await service.evaluate(
+        longitude,
+        latitude,
+        accuracy_meters=accuracy_meters,
+        located_at=located_at,
+        location_consent=location_consent,
+        has_resident_permit=has_resident_permit,
+    )
+    return decision_response(decision)
+
+
+def decision_response(decision: ParkingDecision) -> ParkingDecisionResponse:
+    zone = decision.zone
+    evidence = None
+    if zone is not None:
+        evidence = ParkingDecisionEvidenceResponse(
+            zone_id=str(zone.id),
+            zone_type=zone.zone_type,
+            provenance=zone.provenance,
+            confidence=zone.confidence,
+            observed_at=zone.observed_at,
+            expires_at=zone.expires_at,
+            source_id=str(zone.source_id) if zone.source_id else None,
+            import_batch_id=str(zone.import_batch_id) if zone.import_batch_id else None,
+            restriction_summary=zone.restriction_summary,
+        )
+    return ParkingDecisionResponse(
+        outcome=decision.outcome,
+        coverage_status=decision.coverage_status,
+        reasons=[
+            ParkingDecisionReasonResponse(code=reason.code, message=reason.message)
+            for reason in decision.reasons
+        ],
+        evidence=evidence,
+        evaluated_at=decision.evaluated_at,
     )
