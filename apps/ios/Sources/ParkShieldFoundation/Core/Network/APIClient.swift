@@ -1,28 +1,28 @@
 import Foundation
 
-protocol APIClient: Sendable {
+public protocol APIClient: Sendable {
     func execute(_ request: APIRequest) async throws -> APIResult
 }
 
-struct APIRequest: Sendable {
+public struct APIRequest: Sendable {
     let method: String
     let path: String
     let body: Data?
     let headers: [String: String]
 
-    init(method: String, path: String, body: Data? = nil, headers: [String: String] = [:]) {
+    public init(method: String, path: String, body: Data? = nil, headers: [String: String] = [:]) {
         self.method = method; self.path = path; self.body = body; self.headers = headers
     }
 }
 
-enum APITransportError: Error, Sendable { case invalidURL, requestFailed }
+public enum APITransportError: Error, Sendable { case invalidURL, requestFailed }
 
-struct URLSessionAPIClient: APIClient {
+public struct URLSessionAPIClient: APIClient {
     let baseURL: URL
     let session: URLSession
-    init(baseURL: URL, session: URLSession = .shared) { self.baseURL = baseURL; self.session = session }
+    public init(baseURL: URL, session: URLSession = .shared) { self.baseURL = baseURL; self.session = session }
 
-    func execute(_ request: APIRequest) async throws -> APIResult {
+    public func execute(_ request: APIRequest) async throws -> APIResult {
         guard let url = URL(string: request.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")), relativeTo: baseURL) else { throw APITransportError.invalidURL }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = request.method; urlRequest.httpBody = request.body; urlRequest.timeoutInterval = 15
@@ -37,7 +37,7 @@ struct URLSessionAPIClient: APIClient {
     }
 }
 
-enum APIResult: Sendable {
+public enum APIResult: Sendable {
     case success(statusCode: Int, body: Data)
     case failure(statusCode: Int, error: APIError?)
 }

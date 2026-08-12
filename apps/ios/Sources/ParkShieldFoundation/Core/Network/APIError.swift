@@ -1,6 +1,6 @@
 import Foundation
 
-struct APIError: Decodable, Equatable, Sendable {
+public struct APIError: Decodable, Equatable, Sendable {
     let version: String
     let code: String
     let message: String
@@ -13,7 +13,7 @@ struct APIError: Decodable, Equatable, Sendable {
     }
 }
 
-struct APIErrorDetail: Decodable, Equatable, Sendable {
+public struct APIErrorDetail: Decodable, Equatable, Sendable {
     let field: String
     let code: String
 }

@@ -1,19 +1,21 @@
 import Foundation
 import Security
 
-protocol SecureValueStore: Sendable {
+public protocol SecureValueStore: Sendable {
     func read(for key: String) async throws -> String?
     func write(_ value: String, for key: String) async throws
     func removeValue(for key: String) async throws
 }
 
-enum SecureStorageError: Error, Equatable, Sendable { case unavailable, corrupted }
+public enum SecureStorageError: Error, Equatable, Sendable { case unavailable, corrupted }
 
 /// Keychain-backed credential storage; no credential values are logged or exposed outside this boundary.
-struct KeychainSecureValueStore: SecureValueStore {
+public struct KeychainSecureValueStore: SecureValueStore {
     private let service = "ai.parkshield.session.v1"
 
-    func read(for key: String) async throws -> String? {
+    public init() {}
+
+    public func read(for key: String) async throws -> String? {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: key, kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
@@ -22,7 +24,7 @@ struct KeychainSecureValueStore: SecureValueStore {
         return value
     }
 
-    func write(_ value: String, for key: String) async throws {
+    public func write(_ value: String, for key: String) async throws {
         guard let data = value.data(using: .utf8) else { throw SecureStorageError.corrupted }
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: key]
         let attributes: [String: Any] = [kSecValueData as String: data, kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
@@ -34,7 +36,7 @@ struct KeychainSecureValueStore: SecureValueStore {
         } else if update != errSecSuccess { throw SecureStorageError.unavailable }
     }
 
-    func removeValue(for key: String) async throws {
+    public func removeValue(for key: String) async throws {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: key]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw SecureStorageError.unavailable }

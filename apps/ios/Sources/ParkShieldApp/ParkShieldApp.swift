@@ -1,4 +1,5 @@
 import SwiftUI
+import ParkShieldFoundation
 
 @main
 struct ParkShieldApp: App {
@@ -35,7 +36,7 @@ private struct LoginView: View {
     var body: some View {
         VStack(spacing: ParkShieldTokens.Spacing.medium) {
             Text("Welcome to ParkShield AI").font(.title)
-            TextField("Email", text: $email).textInputAutocapitalization(.never).keyboardType(.emailAddress).accessibilityLabel("Email")
+            TextField("Email", text: $email).accessibilityLabel("Email")
             SecureField("Password", text: $password).accessibilityLabel("Password")
             if let error { Text(message(error)).foregroundStyle(ParkShieldTokens.danger).accessibilityLabel("Login error") }
             Button(loading ? "Signing in" : "Sign in") { loading = true; Task { await signIn(email, password); password = ""; loading = false } }.disabled(loading || email.isEmpty || password.isEmpty)
