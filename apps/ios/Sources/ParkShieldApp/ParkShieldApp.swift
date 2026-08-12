@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(ParkShieldFoundation)
 import ParkShieldFoundation
+#endif
 
 @main
 struct ParkShieldApp: App {
