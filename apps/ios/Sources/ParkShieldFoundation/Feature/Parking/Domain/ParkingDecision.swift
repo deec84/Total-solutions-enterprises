@@ -11,6 +11,6 @@ public struct ParkingDecision: Codable, Sendable { public let outcome: ParkingOu
 }
 public struct ForegroundLocation: Sendable { public let latitude: Double; public let longitude: Double; public let accuracyMeters: Double; public let locatedAt: Date }
 public enum LocationState: Sendable { case permissionDenied, unavailable, available(ForegroundLocation) }
-public enum ParkingFailure: Sendable, Equatable { case offline, service, sessionInvalid }
+public enum ParkingFailure: Error, Sendable, Equatable { case offline, service, sessionInvalid }
 public protocol ParkingDecisionRepository: Sendable { func evaluate(location: ForegroundLocation, accessToken: String) async -> Result<ParkingDecision, ParkingFailure> }
 public protocol ForegroundLocationProvider: Sendable { func current() async -> LocationState }
