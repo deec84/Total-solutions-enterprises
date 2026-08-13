@@ -76,7 +76,8 @@ fun ParkingApp(provider: ForegroundLocationProvider, repository: ParkingDecision
     Column(Modifier.semantics { contentDescription = "Parking decision: $headline" }) {
         Text(headline)
         value.reasons.forEach { Text(it.message) }
-        value.evidence?.let { Text("Source: ${it.provenance}. Confidence: ${(it.confidence * 100).toInt()}%.") }
+        Text("Coverage: ${value.coverageStatus.name.replace('_', ' ').lowercase()}")
+        value.evidence?.let { Text("Source: ${it.provenance}. Confidence: ${(it.confidence * 100).toInt()}%. Observed: ${it.observedAt}. Expires: ${it.expiresAt ?: "not provided"}.") }
         if (value.outcome != ParkingOutcome.PARK || value.coverageStatus != CoverageStatus.VERIFIED_COVERAGE) Text("Review current parking signs before parking.")
     }
 }

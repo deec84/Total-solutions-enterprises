@@ -1,7 +1,4 @@
 import SwiftUI
-#if canImport(ParkShieldFoundation)
-import ParkShieldFoundation
-#endif
 
 enum ParkingUIState { case ready, loading, decision(ParkingDecision), location(String), failure(ParkingFailure) }
 
@@ -50,7 +47,8 @@ private struct DecisionView: View {
         VStack(spacing: ParkShieldTokens.Spacing.small) {
             Text(headline).font(.title2).accessibilityLabel("Parking decision: \(headline)")
             ForEach(Array(decision.reasons.enumerated()), id: \.offset) { _, reason in Text(reason.message) }
-            if let evidence = decision.evidence { Text("Source: \(evidence.provenance). Confidence: \(Int(evidence.confidence * 100))%.") }
+            Text("Coverage: \(decision.coverageStatus.rawValue.replacingOccurrences(of: "_", with: " ").lowercased())")
+            if let evidence = decision.evidence { Text("Source: \(evidence.provenance). Confidence: \(Int(evidence.confidence * 100))%. Observed: \(evidence.observedAt.formatted()). Expires: \(evidence.expiresAt?.formatted() ?? "not provided").") }
             if decision.outcome != .PARK || decision.coverageStatus != .VERIFIED_COVERAGE { Text("Review current parking signs before parking.").fontWeight(.semibold) }
         }
     }
