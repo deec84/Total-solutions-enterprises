@@ -62,6 +62,9 @@ class SessionController(private val repository: AuthenticationRepository, privat
         return state
     }
 
+    /** Returns the bearer only to an authenticated feature adapter; callers must never persist or log it. */
+    suspend fun accessToken(): AuthResult<String?> = sessions.accessToken()
+
     private suspend fun refreshInternal(): SessionState = when (val stored = sessions.refreshToken()) {
         is AuthResult.Failure -> fail(stored.error)
         is AuthResult.Success -> when (val token = stored.value) {

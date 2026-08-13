@@ -12,6 +12,7 @@ public actor SessionController {
     public func login(email: String, password: String) async -> SessionState { switch await repository.login(email: email, password: password) { case .success(let pair): return await persist(pair); case .failure(let error): state = .failed(error); return state } }
     public func refresh() async -> SessionState { if let task = refreshTask { return await task.value }; let task = Task { await self.refreshStored() }; refreshTask = task; let result = await task.value; refreshTask = nil; return result }
     public func logout() async -> SessionState { if case .success(let token?) = await sessions.refreshToken() { _ = await repository.logout(refreshToken: token) }; await sessions.clear(); state = .signedOut; return state }
+    public func accessToken() async -> Result<String?, AuthFailure> { await sessions.accessToken() }
     private func refreshStored() async -> SessionState { switch await sessions.refreshToken() { case .failure(let error): state = .failed(error); case .success(nil): state = .signedOut; case .success(.some(let token)): switch await repository.refresh(refreshToken: token) { case .success(let pair): return await persist(pair); case .failure(let error): await sessions.clear(); state = error == .sessionInvalid ? .signedOut : .failed(error) } }; return state }
     private func persist(_ pair: TokenPair) async -> SessionState { switch await sessions.save(pair) { case .success: state = .signedIn; case .failure(let error): state = .failed(error) }; return state }
 }
