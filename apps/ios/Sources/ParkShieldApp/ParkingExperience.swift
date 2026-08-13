@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(ParkShieldFoundation)
+import ParkShieldFoundation
+#endif
 
 enum ParkingUIState { case ready, loading, decision(ParkingDecision), location(String), failure(ParkingFailure) }
 
