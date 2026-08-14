@@ -1,6 +1,6 @@
 """Parking map HTTP contracts."""
 
-from datetime import datetime
+from datetime import date, datetime, time
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -11,8 +11,29 @@ from app.modules.parking.domain import (
     ParkingDecisionReasonCode,
     Provenance,
     RiskLevel,
+    TemporalRuleEffect,
     ZoneType,
 )
+
+
+class TemporalWindowResponse(BaseModel):
+    starts_at: time
+    ends_at: time
+
+
+class ParkingTemporalRuleResponse(BaseModel):
+    rule_id: str = Field(min_length=1, max_length=160)
+    effect: TemporalRuleEffect
+    weekdays: list[int] = Field(min_length=1, max_length=7)
+    window: TemporalWindowResponse
+    timezone: str = Field(min_length=1, max_length=64)
+    valid_from: datetime
+    valid_until: datetime | None
+    exception_dates: list[date] = Field(default_factory=list, max_length=366)
+    not_applicable_windows: list[TemporalWindowResponse] = Field(
+        default_factory=list, max_length=24
+    )
+    special_restrictions: list[str] = Field(default_factory=list, max_length=16)
 
 
 class ParkingZoneResponse(BaseModel):
@@ -50,6 +71,9 @@ class ParkingDecisionEvidenceResponse(BaseModel):
     source_id: str | None = None
     import_batch_id: str | None = None
     restriction_summary: str | None
+    jurisdiction: str | None = Field(default=None, max_length=160)
+    decision_rule_id: str | None = Field(default=None, max_length=160)
+    temporal_rules: list[ParkingTemporalRuleResponse] = Field(default_factory=list)
 
 
 class ParkingDecisionResponse(BaseModel):

@@ -6,7 +6,7 @@ import ParkShieldFoundation
 @main
 struct ParkShieldApp: App {
     private let controller = SessionController(
-        repository: RestAuthenticationRepository(client: URLSessionAPIClient(baseURL: try! StaticAPIBaseURLProvider(value: "https://api.invalid/").baseURL())),
+        repository: RestAuthenticationRepository(client: URLSessionAPIClient(baseURL: try! PilotAPIConfiguration.provider().baseURL())),
         sessions: SecureSessionStore(store: KeychainSecureValueStore())
     )
     var body: some Scene {
@@ -23,7 +23,7 @@ private struct AuthRoot: View {
         Group {
             switch state {
             case .restoring: ProgressView("Restoring session").accessibilityLabel("Restoring session")
-            case .signedIn: ParkingExperience(controller: controller, repository: RestParkingDecisionRepository(client: URLSessionAPIClient(baseURL: try! StaticAPIBaseURLProvider(value: "https://api.invalid/").baseURL())), provider: IOSForegroundLocationProvider(), signOut: { state = await controller.logout() })
+            case .signedIn: ParkingExperience(controller: controller, repository: RestParkingDecisionRepository(client: URLSessionAPIClient(baseURL: try! PilotAPIConfiguration.provider().baseURL())), provider: IOSForegroundLocationProvider(), signOut: { state = await controller.logout() })
             case .signedOut: LoginView { email, password in state = await controller.login(email: email, password: password) }
             case .failed(let error): LoginView(error: error) { email, password in state = await controller.login(email: email, password: password) }
             }

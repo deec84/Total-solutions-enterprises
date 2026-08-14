@@ -1,7 +1,7 @@
 """Parking risk domain and trust semantics."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, time
 from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
@@ -59,6 +59,35 @@ class ParkingDecisionReasonCode(StrEnum):
     UNVERIFIABLE_SOURCE = "UNVERIFIABLE_SOURCE"
     LOCATION_CONSENT_REQUIRED = "LOCATION_CONSENT_REQUIRED"
     LOCATION_STALE = "LOCATION_STALE"
+    TEMPORAL_RULE_INDETERMINATE = "TEMPORAL_RULE_INDETERMINATE"
+
+
+class TemporalRuleEffect(StrEnum):
+    PARK = "PARK"
+    CAUTION = "CAUTION"
+    DO_NOT_PARK = "DO_NOT_PARK"
+
+
+@dataclass(frozen=True, slots=True)
+class TemporalWindow:
+    starts_at: time
+    ends_at: time
+
+
+@dataclass(frozen=True, slots=True)
+class ParkingTemporalRule:
+    """A source-supplied local-time rule; incomplete rules never authorize parking."""
+
+    rule_id: str
+    effect: TemporalRuleEffect
+    weekdays: tuple[int, ...]
+    window: TemporalWindow
+    timezone: str
+    valid_from: datetime
+    valid_until: datetime | None
+    exception_dates: tuple[date, ...] = ()
+    not_applicable_windows: tuple[TemporalWindow, ...] = ()
+    special_restrictions: tuple[str, ...] = ()
 
 
 def risk_level(score: int) -> RiskLevel:
@@ -93,6 +122,9 @@ class ParkingZone:
     expires_at: datetime | None
     source_id: UUID | None = None
     import_batch_id: UUID | None = None
+    jurisdiction: str | None = None
+    temporal_rules: tuple[ParkingTemporalRule, ...] = ()
+    temporal_schedule_required: bool = False
 
     @property
     def risk_level(self) -> RiskLevel:

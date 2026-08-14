@@ -16,6 +16,7 @@ from sqlalchemy import (
     Text,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -90,6 +91,11 @@ class ParkingZoneRow(Base):
         nullable=True,
     )
     external_record_id: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    jurisdiction: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    temporal_rules: Mapped[list[dict[str, object]]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
+    temporal_schedule_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     __table_args__ = (
         Index("ix_parking_zones_geometry", "geometry", postgresql_using="gist"),
@@ -174,9 +180,7 @@ class AdminAuditRow(Base):
     __tablename__ = "admin_audit_events"
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
-    sequence: Mapped[int] = mapped_column(
-        BigInteger, Identity(), unique=True, nullable=False
-    )
+    sequence: Mapped[int] = mapped_column(BigInteger, Identity(), unique=True, nullable=False)
     actor_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
     action: Mapped[str] = mapped_column(String(96), nullable=False)
     subject_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
@@ -280,12 +284,8 @@ class LoginRateLimitRow(Base):
 
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     failure_count: Mapped[int] = mapped_column(nullable=False)
-    window_started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
-    locked_until: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (Index("ix_login_rate_limits_updated", "updated_at"),)
@@ -326,9 +326,7 @@ class DataRightsRequestRow(Base):
     request_type: Mapped[str] = mapped_column(String(24), nullable=False)
     status: Mapped[str] = mapped_column(String(24), nullable=False)
     requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_data_rights_subject_requested", "subject_reference", "requested_at"),
@@ -446,9 +444,7 @@ class BillingEventRow(Base):
         ForeignKey("billing_subscriptions.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    provider_event_reference: Mapped[str] = mapped_column(
-        String(64), nullable=False, unique=True
-    )
+    provider_event_reference: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

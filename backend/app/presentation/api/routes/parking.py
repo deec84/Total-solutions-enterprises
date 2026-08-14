@@ -15,8 +15,10 @@ from app.modules.parking.schemas import (
     ParkingDecisionEvidenceResponse,
     ParkingDecisionReasonResponse,
     ParkingDecisionResponse,
+    ParkingTemporalRuleResponse,
     ParkingViewportResponse,
     ParkingZoneResponse,
+    TemporalWindowResponse,
 )
 from app.modules.parking.service import (
     InvalidViewportError,
@@ -77,9 +79,7 @@ async def viewport(
         zones = await service.viewport(west, south, east, north, limit)
     except InvalidViewportError as error:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from error
-    return ParkingViewportResponse(
-        zones=[zone_response(zone) for zone in zones]
-    )
+    return ParkingViewportResponse(zones=[zone_response(zone) for zone in zones])
 
 
 @router.get("/decision", response_model=LegacyParkingDecisionResponse, deprecated=True)
@@ -142,6 +142,28 @@ def decision_response(decision: ParkingDecision) -> ParkingDecisionResponse:
             source_id=str(zone.source_id) if zone.source_id else None,
             import_batch_id=str(zone.import_batch_id) if zone.import_batch_id else None,
             restriction_summary=zone.restriction_summary,
+            jurisdiction=zone.jurisdiction,
+            decision_rule_id=decision.decision_rule_id,
+            temporal_rules=[
+                ParkingTemporalRuleResponse(
+                    rule_id=rule.rule_id,
+                    effect=rule.effect,
+                    weekdays=list(rule.weekdays),
+                    window=TemporalWindowResponse(
+                        starts_at=rule.window.starts_at, ends_at=rule.window.ends_at
+                    ),
+                    timezone=rule.timezone,
+                    valid_from=rule.valid_from,
+                    valid_until=rule.valid_until,
+                    exception_dates=list(rule.exception_dates),
+                    not_applicable_windows=[
+                        TemporalWindowResponse(starts_at=item.starts_at, ends_at=item.ends_at)
+                        for item in rule.not_applicable_windows
+                    ],
+                    special_restrictions=list(rule.special_restrictions),
+                )
+                for rule in zone.temporal_rules
+            ],
         )
     return ParkingDecisionResponse(
         outcome=decision.outcome,

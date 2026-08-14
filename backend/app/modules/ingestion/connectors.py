@@ -4,7 +4,8 @@ import csv
 import hashlib
 import io
 import json
-from datetime import datetime
+from datetime import date, datetime, time
+from typing import Any
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, ValidationError
@@ -15,7 +16,12 @@ from app.modules.ingestion.domain import (
     NormalizedParkingZone,
     RejectedRecord,
 )
-from app.modules.parking.domain import ZoneType
+from app.modules.parking.domain import (
+    ParkingTemporalRule,
+    TemporalRuleEffect,
+    TemporalWindow,
+    ZoneType,
+)
 
 IMPORTER_VERSION = "1.0"
 MAX_RECORDS = 5_000
@@ -31,6 +37,8 @@ class ZoneProperties(BaseModel):
     towing_hotspot: bool = False
     observed_at: datetime
     expires_at: datetime | None = None
+    temporal_schedule_required: bool = False
+    temporal_rules: list[dict[str, object]] = Field(default_factory=list, max_length=64)
 
 
 class ZoneGeometry(BaseModel):
@@ -45,9 +53,7 @@ class ZoneFeature(BaseModel):
 
 
 def _hash(value: object) -> str:
-    encoded = json.dumps(
-        value, sort_keys=True, separators=(",", ":"), default=str
-    ).encode()
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode()
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -95,9 +101,7 @@ class GeoJsonParkingZoneConnector:
                 if feature.properties.external_id in seen:
                     raise ValueError("external_id is duplicated in this batch")
                 self._validate_polygon(feature.geometry.coordinates)
-                _aware_timestamps(
-                    feature.properties.observed_at, feature.properties.expires_at
-                )
+                _aware_timestamps(feature.properties.observed_at, feature.properties.expires_at)
                 seen.add(feature.properties.external_id)
                 accepted.append(
                     NormalizedParkingZone(
@@ -109,12 +113,14 @@ class GeoJsonParkingZoneConnector:
                         ),
                         parking_score=feature.properties.parking_score,
                         restriction_summary=feature.properties.restriction_summary,
-                        average_towing_cost_cents=(
-                            feature.properties.average_towing_cost_cents
-                        ),
+                        average_towing_cost_cents=(feature.properties.average_towing_cost_cents),
                         towing_hotspot=feature.properties.towing_hotspot,
                         observed_at=feature.properties.observed_at,
                         expires_at=feature.properties.expires_at,
+                        temporal_rules=tuple(
+                            self._temporal_rule(item) for item in feature.properties.temporal_rules
+                        ),
+                        temporal_schedule_required=feature.properties.temporal_schedule_required,
                     )
                 )
             except (ValidationError, ValueError):
@@ -127,6 +133,54 @@ class GeoJsonParkingZoneConnector:
                     )
                 )
         return NormalizedImport(len(features), zones=tuple(accepted), rejected=tuple(rejected))
+
+    @staticmethod
+    def _temporal_rule(value: dict[str, Any]) -> ParkingTemporalRule:
+        try:
+            weekdays = tuple(int(item) for item in value["weekdays"])
+            window = value["window"]
+            if not isinstance(window, dict):
+                raise ValueError("window must be an object")
+            starts, ends = (
+                time.fromisoformat(str(window["starts_at"])),
+                time.fromisoformat(str(window["ends_at"])),
+            )
+            valid_from = datetime.fromisoformat(str(value["valid_from"]).replace("Z", "+00:00"))
+            raw_until = value.get("valid_until")
+            valid_until = (
+                datetime.fromisoformat(str(raw_until).replace("Z", "+00:00")) if raw_until else None
+            )
+            exceptions = tuple(
+                date.fromisoformat(str(item)) for item in value.get("exception_dates", [])
+            )
+            omitted = tuple(
+                TemporalWindow(
+                    time.fromisoformat(str(item["starts_at"])),
+                    time.fromisoformat(str(item["ends_at"])),
+                )
+                for item in value.get("not_applicable_windows", [])
+            )
+            if (
+                not weekdays
+                or any(day not in range(7) for day in weekdays)
+                or valid_from.tzinfo is None
+                or (valid_until and valid_until.tzinfo is None)
+            ):
+                raise ValueError
+            return ParkingTemporalRule(
+                str(value["rule_id"]),
+                TemporalRuleEffect(str(value["effect"])),
+                weekdays,
+                TemporalWindow(starts, ends),
+                str(value["timezone"]),
+                valid_from,
+                valid_until,
+                exceptions,
+                omitted,
+                tuple(str(item) for item in value.get("special_restrictions", [])),
+            )
+        except (AssertionError, KeyError, TypeError, ValueError) as error:
+            raise ValueError("invalid temporal rule") from error
 
     @staticmethod
     def _validate_polygon(coordinates: list[list[list[float]]]) -> None:
@@ -164,9 +218,7 @@ class CsvParkingFacilityConnector:
         except UnicodeDecodeError:
             return NormalizedImport(
                 1,
-                rejected=(
-                    _reject(-1, payload.hex(), "invalid_csv", "feed is not UTF-8 CSV"),
-                ),
+                rejected=(_reject(-1, payload.hex(), "invalid_csv", "feed is not UTF-8 CSV"),),
             )
         reader = csv.DictReader(io.StringIO(text))
         headers = frozenset(reader.fieldnames or ())
@@ -215,9 +267,7 @@ class CsvParkingFacilityConnector:
                         "record does not satisfy the parking-facility contract",
                     )
                 )
-        return NormalizedImport(
-            len(rows), facilities=tuple(accepted), rejected=tuple(rejected)
-        )
+        return NormalizedImport(len(rows), facilities=tuple(accepted), rejected=tuple(rejected))
 
     @staticmethod
     def _row(row: dict[str, str | None]) -> NormalizedParkingFacility:
@@ -281,9 +331,7 @@ def _int(row: dict[str, str | None], key: str, minimum: int, maximum: int) -> in
     return value
 
 
-def _optional_int(
-    row: dict[str, str | None], key: str, minimum: int, maximum: int
-) -> int | None:
+def _optional_int(row: dict[str, str | None], key: str, minimum: int, maximum: int) -> int | None:
     value = (row.get(key) or "").strip()
     return _int({key: value}, key, minimum, maximum) if value else None
 
@@ -295,9 +343,7 @@ def _optional_float(
     return _float({key: value}, key, minimum, maximum) if value else None
 
 
-def _datetime(
-    row: dict[str, str | None], key: str, *, required: bool
-) -> datetime | None:
+def _datetime(row: dict[str, str | None], key: str, *, required: bool) -> datetime | None:
     value = (row.get(key) or "").strip()
     if not value and not required:
         return None

@@ -23,11 +23,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val controller = SessionController(
-            RestAuthenticationRepository(HttpUrlConnectionApiClient(StaticApiBaseUrlProvider(BuildConfig.PARKSHIELD_API_BASE_URL).url())),
+            RestAuthenticationRepository(HttpUrlConnectionApiClient(StaticApiBaseUrlProvider(BuildConfig.PARKSHIELD_API_BASE_URL, BuildConfig.PARKSHIELD_API_ALLOWED_HOSTS).url())),
             SecureSessionStore(AndroidKeyStoreSecureValueStore(this)),
         )
         fun uiState(state: SessionState): AuthUiState = when (state) { SessionState.Restoring -> AuthUiState.Restoring; SessionState.SignedIn -> AuthUiState.SignedIn; SessionState.SignedOut -> AuthUiState.SignedOut; is SessionState.Failed -> AuthUiState.Failed(state.error) }
-        val client = HttpUrlConnectionApiClient(StaticApiBaseUrlProvider(BuildConfig.PARKSHIELD_API_BASE_URL).url())
+        val client = HttpUrlConnectionApiClient(StaticApiBaseUrlProvider(BuildConfig.PARKSHIELD_API_BASE_URL, BuildConfig.PARKSHIELD_API_ALLOWED_HOSTS).url())
         val parking = RestParkingDecisionRepository(client)
         setContent { ParkShieldTheme { AuthApp(restore = { uiState(controller.restore()) }, login = { email, password -> uiState(controller.login(email, password)) }, logout = { uiState(controller.logout()) }) { logout -> ParkingApp(AndroidForegroundLocationProvider(this), parking, accessToken = { when (val token = controller.accessToken()) { is AuthResult.Success -> token.value; is AuthResult.Failure -> null } }, onSessionInvalid = { controller.logout() }, onLogout = logout) } } }
     }
