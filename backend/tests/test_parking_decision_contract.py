@@ -2,7 +2,8 @@
 
 import asyncio
 import json
-from datetime import UTC, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -13,8 +14,11 @@ from app.modules.identity.domain import Role, User
 from app.modules.parking.domain import (
     CoverageStatus,
     ParkingDecisionOutcome,
+    ParkingTemporalRule,
     ParkingZone,
     Provenance,
+    TemporalRuleEffect,
+    TemporalWindow,
     ZoneType,
 )
 from app.modules.parking.schemas import ParkingDecisionResponse
@@ -37,8 +41,12 @@ class Zones:
         self, longitude: float, latitude: float, *, include_expired: bool = False
     ) -> ParkingZone | None:
         now = datetime.now(UTC)
-        candidates = self._zones if include_expired else tuple(
-            zone for zone in self._zones if zone.expires_at is None or zone.expires_at > now
+        candidates = (
+            self._zones
+            if include_expired
+            else tuple(
+                zone for zone in self._zones if zone.expires_at is None or zone.expires_at > now
+            )
         )
         return candidates[0] if candidates else None
 
@@ -81,6 +89,8 @@ async def evaluate(value: ParkingDecisionService, **overrides: object):
         "location_consent": True,
     }
     request.update(overrides)
+    if "now" in request and "located_at" not in overrides:
+        request["located_at"] = request["now"]
     return await value.evaluate(
         -80.1918,
         25.7617,
@@ -131,6 +141,91 @@ def test_no_coverage_imprecise_or_old_location_is_indeterminate() -> None:
     assert all(
         decision.outcome is ParkingDecisionOutcome.INDETERMINATE
         for decision in (no_coverage, imprecise, old, without_consent)
+    )
+
+
+def temporal_rule(
+    effect: TemporalRuleEffect,
+    *,
+    weekdays: tuple[int, ...] = (0,),
+    start: time = time(9),
+    end: time = time(17),
+    exceptions: tuple = (),
+) -> ParkingTemporalRule:
+    return ParkingTemporalRule(
+        "synthetic-rule",
+        effect,
+        weekdays,
+        TemporalWindow(start, end),
+        "UTC",
+        datetime(2026, 1, 1, tzinfo=UTC),
+        datetime(2026, 2, 1, tzinfo=UTC),
+        exceptions,
+    )
+
+
+def test_temporal_rules_cover_allowed_prohibited_exception_and_overlap() -> None:
+    monday = datetime(2026, 1, 5, 10, tzinfo=UTC)
+    allowed = replace(
+        zone(),
+        temporal_rules=(temporal_rule(TemporalRuleEffect.PARK),),
+        temporal_schedule_required=True,
+    )
+    prohibited = replace(allowed, temporal_rules=(temporal_rule(TemporalRuleEffect.DO_NOT_PARK),))
+    exception = replace(
+        allowed,
+        temporal_rules=(temporal_rule(TemporalRuleEffect.PARK, exceptions=(monday.date(),)),),
+    )
+    overlap = replace(
+        allowed,
+        temporal_rules=(
+            temporal_rule(TemporalRuleEffect.PARK),
+            temporal_rule(TemporalRuleEffect.DO_NOT_PARK),
+        ),
+    )
+    assert asyncio.run(evaluate(service(allowed), now=monday)).outcome is (
+        ParkingDecisionOutcome.PARK
+    )
+    assert asyncio.run(evaluate(service(prohibited), now=monday)).outcome is (
+        ParkingDecisionOutcome.DO_NOT_PARK
+    )
+    assert asyncio.run(evaluate(service(exception), now=monday)).outcome is (
+        ParkingDecisionOutcome.INDETERMINATE
+    )
+    assert asyncio.run(evaluate(service(overlap), now=monday)).outcome is (
+        ParkingDecisionOutcome.DO_NOT_PARK
+    )
+
+
+def test_temporal_rules_fail_closed_for_missing_schedule_expiry_and_day_boundary() -> None:
+    monday = datetime(2026, 1, 5, 23, 30, tzinfo=UTC)
+    required = replace(zone(), temporal_schedule_required=True)
+    overnight = replace(
+        required,
+        temporal_rules=(temporal_rule(TemporalRuleEffect.PARK, start=time(22), end=time(2)),),
+    )
+    expired = replace(
+        required,
+        temporal_rules=(
+            ParkingTemporalRule(
+                "expired",
+                TemporalRuleEffect.PARK,
+                (0,),
+                TemporalWindow(time(9), time(17)),
+                "UTC",
+                datetime(2025, 1, 1, tzinfo=UTC),
+                datetime(2025, 2, 1, tzinfo=UTC),
+            ),
+        ),
+    )
+    assert asyncio.run(evaluate(service(required), now=monday)).outcome is (
+        ParkingDecisionOutcome.INDETERMINATE
+    )
+    assert (
+        asyncio.run(evaluate(service(overnight), now=monday)).outcome is ParkingDecisionOutcome.PARK
+    )
+    assert asyncio.run(evaluate(service(expired), now=monday)).outcome is (
+        ParkingDecisionOutcome.INDETERMINATE
     )
 
 

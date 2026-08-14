@@ -7,7 +7,11 @@ from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
 
-from app.modules.parking.domain import Provenance, ZoneType
+from app.modules.parking.domain import (
+    ParkingTemporalRule,
+    Provenance,
+    ZoneType,
+)
 
 
 class FeedKind(StrEnum):
@@ -59,6 +63,8 @@ class NormalizedParkingZone:
     towing_hotspot: bool
     observed_at: datetime
     expires_at: datetime | None
+    temporal_rules: tuple[ParkingTemporalRule, ...] = ()
+    temporal_schedule_required: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,9 +139,7 @@ class MunicipalIngestionRepository(Protocol):
         """List configured sources in stable order."""
 
     @abstractmethod
-    async def batch_by_digest(
-        self, source_id: UUID, content_sha256: str
-    ) -> ImportBatch | None:
+    async def batch_by_digest(self, source_id: UUID, content_sha256: str) -> ImportBatch | None:
         """Return an earlier batch for idempotent feed replay."""
 
     @abstractmethod

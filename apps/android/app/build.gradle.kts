@@ -15,7 +15,10 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "PARKSHIELD_API_BASE_URL", "\"https://api.invalid/\"")
+        val pilotBaseUrl = providers.gradleProperty("parkshieldApiBaseUrl").orElse("https://api.invalid/")
+        val pilotAllowedHosts = providers.gradleProperty("parkshieldApiAllowedHosts").orElse("api.invalid")
+        buildConfigField("String", "PARKSHIELD_API_BASE_URL", "\"${pilotBaseUrl.get()}\"")
+        buildConfigField("String", "PARKSHIELD_API_ALLOWED_HOSTS", "\"${pilotAllowedHosts.get()}\"")
     }
     buildFeatures { buildConfig = true }
 

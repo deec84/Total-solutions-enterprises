@@ -1,5 +1,7 @@
 """PostgreSQL/PostGIS adapter for governed municipal imports."""
 
+from datetime import date, datetime, time
+from typing import Any
 from uuid import UUID, uuid4, uuid5
 
 from sqlalchemy import func, select
@@ -21,6 +23,50 @@ from app.modules.ingestion.domain import (
     MunicipalSource,
     NormalizedImport,
 )
+from app.modules.parking.domain import ParkingTemporalRule, TemporalRuleEffect, TemporalWindow
+
+
+def _rule(item: dict[str, Any]) -> ParkingTemporalRule:
+    window = item["window"]
+    if not isinstance(window, dict):
+        raise ValueError("stored temporal window must be an object")
+    return ParkingTemporalRule(
+        str(item["rule_id"]),
+        TemporalRuleEffect(str(item["effect"])),
+        tuple(int(day) for day in item["weekdays"]),
+        TemporalWindow(
+            time.fromisoformat(str(window["starts_at"])), time.fromisoformat(str(window["ends_at"]))
+        ),
+        str(item["timezone"]),
+        datetime.fromisoformat(str(item["valid_from"]).replace("Z", "+00:00")),
+        datetime.fromisoformat(str(item["valid_until"]).replace("Z", "+00:00"))
+        if item.get("valid_until")
+        else None,
+        tuple(date.fromisoformat(str(day)) for day in item.get("exception_dates", [])),
+        (),
+        tuple(str(value) for value in item.get("special_restrictions", [])),
+    )
+
+
+def _serialized_rule(rule: ParkingTemporalRule) -> dict[str, object]:
+    return {
+        "rule_id": rule.rule_id,
+        "effect": rule.effect.value,
+        "weekdays": list(rule.weekdays),
+        "window": {
+            "starts_at": rule.window.starts_at.isoformat(),
+            "ends_at": rule.window.ends_at.isoformat(),
+        },
+        "timezone": rule.timezone,
+        "valid_from": rule.valid_from.isoformat(),
+        "valid_until": rule.valid_until.isoformat() if rule.valid_until else None,
+        "exception_dates": [value.isoformat() for value in rule.exception_dates],
+        "not_applicable_windows": [
+            {"starts_at": value.starts_at.isoformat(), "ends_at": value.ends_at.isoformat()}
+            for value in rule.not_applicable_windows
+        ],
+        "special_restrictions": list(rule.special_restrictions),
+    }
 
 
 def _source(row: MunicipalSourceRow) -> MunicipalSource:
@@ -90,9 +136,7 @@ class SqlMunicipalIngestionRepository:
         )
         return tuple(_source(row) for row in rows)
 
-    async def batch_by_digest(
-        self, source_id: UUID, content_sha256: str
-    ) -> ImportBatch | None:
+    async def batch_by_digest(self, source_id: UUID, content_sha256: str) -> ImportBatch | None:
         row = await self._session.scalar(
             select(MunicipalImportBatchRow).where(
                 MunicipalImportBatchRow.source_id == source_id,
@@ -139,9 +183,7 @@ class SqlMunicipalIngestionRepository:
                 "id": uuid5(source.id, zone.external_id),
                 "name": zone.name,
                 "zone_type": zone.zone_type.value,
-                "geometry": func.ST_SetSRID(
-                    func.ST_GeomFromGeoJSON(zone.geometry_geojson), 4326
-                ),
+                "geometry": func.ST_SetSRID(func.ST_GeomFromGeoJSON(zone.geometry_geojson), 4326),
                 "parking_score": zone.parking_score,
                 "provenance": source.provenance.value,
                 "confidence": 1.0 if source.official else 0.5,
@@ -153,6 +195,9 @@ class SqlMunicipalIngestionRepository:
                 "source_id": source.id,
                 "import_batch_id": batch.id,
                 "external_record_id": zone.external_id,
+                "jurisdiction": source.jurisdiction,
+                "temporal_rules": [_serialized_rule(rule) for rule in zone.temporal_rules],
+                "temporal_schedule_required": zone.temporal_schedule_required,
             }
             statement = insert(ParkingZoneRow).values(**values)
             await self._session.execute(

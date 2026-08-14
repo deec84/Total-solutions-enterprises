@@ -16,7 +16,23 @@
     "expires_at": "2026-01-15T14:00:00Z",
     "source_id": "synthetic-source-not-official",
     "import_batch_id": "synthetic-batch-not-official",
-    "restriction_summary": "Synthetic fixture only; not municipal parking evidence."
+    "restriction_summary": "Synthetic fixture only; not municipal parking evidence.",
+    "jurisdiction": "Synthetic test jurisdiction — not coverage",
+    "decision_rule_id": "synthetic-weekday-rule",
+    "temporal_rules": [
+      {
+        "rule_id": "synthetic-weekday-rule",
+        "effect": "PARK",
+        "weekdays": [0, 1, 2, 3, 4],
+        "window": { "starts_at": "09:00:00", "ends_at": "17:00:00" },
+        "timezone": "UTC",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2026-01-31T00:00:00Z",
+        "exception_dates": [],
+        "not_applicable_windows": [],
+        "special_restrictions": ["SYNTHETIC ONLY"]
+      }
+    ]
   },
   "evaluated_at": "2026-01-15T12:01:00Z"
 }

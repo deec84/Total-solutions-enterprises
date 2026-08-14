@@ -1276,6 +1276,18 @@
             "title": "Confidence",
             "type": "number"
           },
+          "decision_rule_id": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Rule Id"
+          },
           "expires_at": {
             "anyOf": [
               {
@@ -1298,6 +1310,18 @@
               }
             ],
             "title": "Import Batch Id"
+          },
+          "jurisdiction": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jurisdiction"
           },
           "observed_at": {
             "format": "date-time",
@@ -1328,6 +1352,13 @@
               }
             ],
             "title": "Source Id"
+          },
+          "temporal_rules": {
+            "items": {
+              "$ref": "#/components/schemas/ParkingTemporalRuleResponse"
+            },
+            "title": "Temporal Rules",
+            "type": "array"
           },
           "zone_id": {
             "title": "Zone Id",
@@ -1370,7 +1401,8 @@
           "DECISION_INDETERMINATE",
           "UNVERIFIABLE_SOURCE",
           "LOCATION_CONSENT_REQUIRED",
-          "LOCATION_STALE"
+          "LOCATION_STALE",
+          "TEMPORAL_RULE_INDETERMINATE"
         ],
         "title": "ParkingDecisionReasonCode",
         "type": "string"
@@ -1565,6 +1597,90 @@
           "reasons"
         ],
         "title": "ParkingRecommendationResponse",
+        "type": "object"
+      },
+      "ParkingTemporalRuleResponse": {
+        "properties": {
+          "effect": {
+            "$ref": "#/components/schemas/TemporalRuleEffect"
+          },
+          "exception_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "maxItems": 366,
+            "title": "Exception Dates",
+            "type": "array"
+          },
+          "not_applicable_windows": {
+            "items": {
+              "$ref": "#/components/schemas/TemporalWindowResponse"
+            },
+            "maxItems": 24,
+            "title": "Not Applicable Windows",
+            "type": "array"
+          },
+          "rule_id": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "special_restrictions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Special Restrictions",
+            "type": "array"
+          },
+          "timezone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Timezone",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "weekdays": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Weekdays",
+            "type": "array"
+          },
+          "window": {
+            "$ref": "#/components/schemas/TemporalWindowResponse"
+          }
+        },
+        "required": [
+          "rule_id",
+          "effect",
+          "weekdays",
+          "window",
+          "timezone",
+          "valid_from",
+          "valid_until"
+        ],
+        "title": "ParkingTemporalRuleResponse",
         "type": "object"
       },
       "ParkingViewportResponse": {
@@ -2304,6 +2420,35 @@
         ],
         "title": "StorePlatform",
         "type": "string"
+      },
+      "TemporalRuleEffect": {
+        "enum": [
+          "PARK",
+          "CAUTION",
+          "DO_NOT_PARK"
+        ],
+        "title": "TemporalRuleEffect",
+        "type": "string"
+      },
+      "TemporalWindowResponse": {
+        "properties": {
+          "ends_at": {
+            "format": "time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "starts_at": {
+            "format": "time",
+            "title": "Starts At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "starts_at",
+          "ends_at"
+        ],
+        "title": "TemporalWindowResponse",
+        "type": "object"
       },
       "TokenPair": {
         "properties": {

@@ -1,10 +1,48 @@
 """PostGIS viewport adapter for parking zones."""
 
+from datetime import date, datetime, time
+from typing import Any
+
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.models import ParkingZoneRow
-from app.modules.parking.domain import ParkingZone, Provenance, ZoneType
+from app.modules.parking.domain import (
+    ParkingTemporalRule,
+    ParkingZone,
+    Provenance,
+    TemporalRuleEffect,
+    TemporalWindow,
+    ZoneType,
+)
+
+
+def _rule(item: dict[str, Any]) -> ParkingTemporalRule:
+    window = item["window"]
+    if not isinstance(window, dict):
+        raise ValueError("stored temporal window must be an object")
+    return ParkingTemporalRule(
+        str(item["rule_id"]),
+        TemporalRuleEffect(str(item["effect"])),
+        tuple(int(day) for day in item["weekdays"]),
+        TemporalWindow(
+            time.fromisoformat(str(window["starts_at"])), time.fromisoformat(str(window["ends_at"]))
+        ),
+        str(item["timezone"]),
+        datetime.fromisoformat(str(item["valid_from"]).replace("Z", "+00:00")),
+        datetime.fromisoformat(str(item["valid_until"]).replace("Z", "+00:00"))
+        if item.get("valid_until")
+        else None,
+        tuple(date.fromisoformat(str(day)) for day in item.get("exception_dates", [])),
+        tuple(
+            TemporalWindow(
+                time.fromisoformat(str(value["starts_at"])),
+                time.fromisoformat(str(value["ends_at"])),
+            )
+            for value in item.get("not_applicable_windows", [])
+        ),
+        tuple(str(value) for value in item.get("special_restrictions", [])),
+    )
 
 
 class SqlParkingZoneRepository:
@@ -19,8 +57,7 @@ class SqlParkingZoneRepository:
             select(ParkingZoneRow, func.ST_AsGeoJSON(ParkingZoneRow.geometry))
             .where(
                 func.ST_Intersects(ParkingZoneRow.geometry, envelope),
-                (ParkingZoneRow.expires_at.is_(None))
-                | (ParkingZoneRow.expires_at > func.now()),
+                (ParkingZoneRow.expires_at.is_(None)) | (ParkingZoneRow.expires_at > func.now()),
             )
             .order_by(ParkingZoneRow.parking_score)
             .limit(limit)
@@ -46,8 +83,7 @@ class SqlParkingZoneRepository:
         )
         if not include_expired:
             statement = statement.where(
-                (ParkingZoneRow.expires_at.is_(None))
-                | (ParkingZoneRow.expires_at > func.now())
+                (ParkingZoneRow.expires_at.is_(None)) | (ParkingZoneRow.expires_at > func.now())
             )
         result = (await self._session.execute(statement)).first()
         return self._map(result[0], result[1]) if result is not None else None
@@ -69,4 +105,7 @@ class SqlParkingZoneRepository:
             expires_at=row.expires_at,
             source_id=row.source_id,
             import_batch_id=row.import_batch_id,
+            jurisdiction=row.jurisdiction,
+            temporal_rules=tuple(_rule(item) for item in row.temporal_rules),
+            temporal_schedule_required=row.temporal_schedule_required,
         )
