@@ -23,7 +23,7 @@ private struct AuthRoot: View {
         Group {
             switch state {
             case .restoring: ProgressView("Restoring session").accessibilityLabel("Restoring session")
-            case .signedIn: VStack(spacing: ParkShieldTokens.Spacing.large) { Text("You are signed in"); Button("Sign out") { Task { state = await controller.logout() } } }
+            case .signedIn: ParkingExperience(controller: controller, repository: RestParkingDecisionRepository(client: URLSessionAPIClient(baseURL: try! StaticAPIBaseURLProvider(value: "https://api.invalid/").baseURL())), provider: IOSForegroundLocationProvider(), signOut: { state = await controller.logout() })
             case .signedOut: LoginView { email, password in state = await controller.login(email: email, password: password) }
             case .failed(let error): LoginView(error: error) { email, password in state = await controller.login(email: email, password: password) }
             }

@@ -26,12 +26,12 @@ import kotlinx.coroutines.launch
 sealed interface AuthUiState { data object Restoring : AuthUiState; data object SignedOut : AuthUiState; data object SignedIn : AuthUiState; data class Failed(val error: AuthFailure) : AuthUiState }
 
 @Composable
-fun AuthApp(restore: suspend () -> AuthUiState, login: suspend (String, CharArray) -> AuthUiState, logout: suspend () -> AuthUiState) {
+fun AuthApp(restore: suspend () -> AuthUiState, login: suspend (String, CharArray) -> AuthUiState, logout: suspend () -> AuthUiState, authenticatedContent: @Composable (suspend () -> Unit) -> Unit) {
     var session by remember { mutableStateOf<AuthUiState>(AuthUiState.Restoring) }
     LaunchedEffect(Unit) { session = restore() }
     when (session) {
         AuthUiState.Restoring -> Splash()
-        AuthUiState.SignedIn -> AuthenticatedShell(onLogout = { session = logout() })
+        AuthUiState.SignedIn -> authenticatedContent { session = logout() }
         AuthUiState.SignedOut -> Login(onLogin = { email, password -> session = login(email, password) })
         is AuthUiState.Failed -> Login(error = (session as AuthUiState.Failed).error, onLogin = { email, password -> session = login(email, password) })
     }
@@ -50,7 +50,5 @@ fun AuthApp(restore: suspend () -> AuthUiState, login: suspend (String, CharArra
         Button(enabled = !loading && email.isNotBlank() && password.isNotEmpty(), onClick = { loading = true; scope.launch { onLogin(email, password.toCharArray()); password = ""; loading = false } }, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "Signing in" else "Sign in") }
     }
 }
-
-@Composable private fun AuthenticatedShell(onLogout: suspend () -> Unit) { val scope = androidx.compose.runtime.rememberCoroutineScope(); Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) { Text("You are signed in"); Button(onClick = { scope.launch { onLogout() } }) { Text("Sign out") } } }
 
 private fun errorMessage(error: AuthFailure): String = when (error) { AuthFailure.SessionInvalid -> "Your session has ended. Please sign in again."; is AuthFailure.Remote -> if (error.code == "RATE_LIMITED") "Too many attempts. Please wait and try again." else "Email or password is incorrect."; AuthFailure.Transport -> "Unable to sign in right now."; AuthFailure.SecureStorage -> "Secure storage is unavailable." }

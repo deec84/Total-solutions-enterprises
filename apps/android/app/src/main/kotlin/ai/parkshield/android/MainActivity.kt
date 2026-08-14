@@ -14,6 +14,10 @@ import ai.parkshield.android.feature.auth.data.SessionController
 import ai.parkshield.android.feature.auth.presentation.AuthApp
 import ai.parkshield.android.feature.auth.presentation.AuthUiState
 import ai.parkshield.android.feature.auth.data.SessionState
+import ai.parkshield.android.feature.auth.domain.AuthResult
+import ai.parkshield.android.feature.parking.data.AndroidForegroundLocationProvider
+import ai.parkshield.android.feature.parking.data.RestParkingDecisionRepository
+import ai.parkshield.android.feature.parking.presentation.ParkingApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,6 +27,8 @@ class MainActivity : ComponentActivity() {
             SecureSessionStore(AndroidKeyStoreSecureValueStore(this)),
         )
         fun uiState(state: SessionState): AuthUiState = when (state) { SessionState.Restoring -> AuthUiState.Restoring; SessionState.SignedIn -> AuthUiState.SignedIn; SessionState.SignedOut -> AuthUiState.SignedOut; is SessionState.Failed -> AuthUiState.Failed(state.error) }
-        setContent { ParkShieldTheme { AuthApp(restore = { uiState(controller.restore()) }, login = { email, password -> uiState(controller.login(email, password)) }, logout = { uiState(controller.logout()) }) } }
+        val client = HttpUrlConnectionApiClient(StaticApiBaseUrlProvider(BuildConfig.PARKSHIELD_API_BASE_URL).url())
+        val parking = RestParkingDecisionRepository(client)
+        setContent { ParkShieldTheme { AuthApp(restore = { uiState(controller.restore()) }, login = { email, password -> uiState(controller.login(email, password)) }, logout = { uiState(controller.logout()) }) { logout -> ParkingApp(AndroidForegroundLocationProvider(this), parking, accessToken = { when (val token = controller.accessToken()) { is AuthResult.Success -> token.value; is AuthResult.Failure -> null } }, onSessionInvalid = { controller.logout() }, onLogout = logout) } } }
     }
 }
