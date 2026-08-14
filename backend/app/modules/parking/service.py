@@ -1,7 +1,7 @@
 """Parking map and fail-closed parking-decision application use cases."""
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.modules.parking.domain import (
@@ -232,7 +232,7 @@ class ParkingDecisionService:
         )
 
     @staticmethod
-    def _in_window(value, starts, ends) -> bool:
+    def _in_window(value: time, starts: time, ends: time) -> bool:
         return starts <= value < ends if starts < ends else value >= starts or value < ends
 
     @staticmethod

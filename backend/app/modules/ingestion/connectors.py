@@ -137,15 +137,15 @@ class GeoJsonParkingZoneConnector:
     @staticmethod
     def _temporal_rule(value: dict[str, Any]) -> ParkingTemporalRule:
         try:
-            weekdays = tuple(int(item) for item in value["weekdays"])  # type: ignore[index]
-            window = value["window"]  # type: ignore[index]
+            weekdays = tuple(int(item) for item in value["weekdays"])
+            window = value["window"]
             if not isinstance(window, dict):
                 raise ValueError("window must be an object")
             starts, ends = (
                 time.fromisoformat(str(window["starts_at"])),
                 time.fromisoformat(str(window["ends_at"])),
             )
-            valid_from = datetime.fromisoformat(str(value["valid_from"]).replace("Z", "+00:00"))  # type: ignore[index]
+            valid_from = datetime.fromisoformat(str(value["valid_from"]).replace("Z", "+00:00"))
             raw_until = value.get("valid_until")
             valid_until = (
                 datetime.fromisoformat(str(raw_until).replace("Z", "+00:00")) if raw_until else None
@@ -159,7 +159,7 @@ class GeoJsonParkingZoneConnector:
                     time.fromisoformat(str(item["ends_at"])),
                 )
                 for item in value.get("not_applicable_windows", [])
-            )  # type: ignore[index]
+            )
             if (
                 not weekdays
                 or any(day not in range(7) for day in weekdays)
